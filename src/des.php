@@ -6,8 +6,6 @@ class Des {
     public int $de2;
 
     public function __construct () {
-        $this->de1 = 0;
-        $this->de2 = 0;
         $this->lancer();
     }
 

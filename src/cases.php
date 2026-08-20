@@ -19,31 +19,21 @@ class Cases {
         $this->colorSecteur = $colorSecteur;
     }
 
-    public function empiler (Pion $pion): void {
-        $this->pions[] = $pion;
-    }
+    public function empiler (Pion $pion): void { $this->pions[] = $pion; }
 
     public function depiler (): ?Pion {
-        if ($this->isEmpty()) {
-            return null;
-        }
+        if ($this->isEmpty()) { return null; }
         return array_pop($this->pions);
     }
 
     public function getPionOnSommet (): ?Pion {
-        if ($this->isEmpty()) {
-            return null;
-        }
+        if ($this->isEmpty()) {  return null; }
         return $this->pions[count($this->pions) - 1];
     }
 
-    public function isEmpty (): bool {
-        return empty($this->pions);
-    }
+    public function isEmpty (): bool { return empty($this->pions); }
 
-    public function nbPions (): int {
-        return count($this->pions);
-    }
+    public function nbPions (): int { return count($this->pions); }
 
     public function vider (): array {
         $oldPions = $this->pions;
@@ -53,9 +43,7 @@ class Cases {
 
     public function toArray (): array {
         $pilePions = [];
-        foreach ($this->pions as $pion) {
-            $pilePions[] = $pion->toArray();
-        }
+        foreach ($this->pions as $pion) { $pilePions[] = $pion->toArray(); }
         $pionSommet = $this->getPionOnSommet();
 
         return [
