@@ -173,6 +173,8 @@ class GestionnaireMouvement {
         } elseif ($pionFautif->etat === Pion::ETAT_ARRIVEE) {
             $case = $plateau->getCaseArrivee($pionFautif->couleur, $pionFautif->position);
             if ($case !== null) { $case->depiler(); }
+        } elseif ($pionFautif->etat !== Pion::ETAT_CIRCUIT) {
+            return ['succes' => false, 'message' => "PENALITE INVALIDE : PION #{$pionFautif->id} N'EST PAS ACTIF SUR LE CIRCUIT"];
         }
 
         // renvoyer directement à MAISON
