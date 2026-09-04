@@ -1,6 +1,5 @@
 const TAILLE_GRILLE = 15;
-// const TAILLE_CASE = 40;
-// const SVG_NS = "http://www.w3.org/2000/svg";
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 // coordonnées (row, col) des cases de DEPART [index = 0 pour chaque couleur]
 const CASES_DEPART = {
@@ -17,7 +16,20 @@ const CONFIG_MAISONS = [
     { couleur: "VERT",  row: 0, col: 9, classSocle: "socle-vert" }
 ];
 
-document.addEventListener("DOMContentLoaded", () => { creerPlateau(); });
+document.addEventListener("DOMContentLoaded", () => {
+    creerPlateau();
+
+    // initialise le composant à 2 deux
+    initializeDiceComposants( (resultatDes) => {
+        console.log(`resultat du lancer : ${resultatDes}`);
+
+        const eligibles = calculateEligiblePions("ROUGE", resultatDes);
+
+        activatePionsEligibles(eligibles, (pionChoisi) => {
+            console.log(`pion cliqué - ${pionChoisi}`);
+        });
+    });
+});
 
 function creerPlateau () {
     const container = document.getElementById('board-container');
@@ -50,6 +62,7 @@ function creerPlateau () {
     appliquerMarquageCircuit(svg);
     dessinMaisonSocles(svg);
     dessinerCentreCiel(svg);
+    initializeAllPions(svg);
 
     container.appendChild(svg);
 }
@@ -155,15 +168,15 @@ function appliquerMarquageCircuit (svg) {
             text.textContent = caseInfo.indexRelatif;
             text.setAttribute("font-weight", "bold");
             text.setAttribute("font-size", "13px");
-            text.setAttribute("fill", caseInfo.type.startsWith("DEPART_") ? "#fff" : "#e67e22");
+            // text.setAttribute("fill", caseInfo.type.startsWith("DEPART_") ? "#fff" : "#e67e22");
         });
 
         rect.addEventListener("mouseleave", () => {
-            rect.classList.add("case-hover");
+            rect.classList.remove("case-hover");
             text.textContent = caseInfo.index;
             text.setAttribute("font-weight", "normal");
             text.setAttribute("font-size", "10px");
-            text.setAttribute("fill", caseInfo.type.startsWith("DEPART_") ? "#fff" : "#7f8c8d");
+            // text.setAttribute("fill", caseInfo.type.startsWith("DEPART_") ? "#fff" : "#7f8c8d");
         });
     });
 }

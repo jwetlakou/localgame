@@ -1,0 +1,39 @@
+.pion {
+    cursor: pointer;
+    transition: transform .3s cubic-bezier(.25, .8, .25, 1), filter .2s ease;
+}
+
+.pion:hover {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .4));
+    opacity: .95;
+}
+
+/* ANIMIATION D'IMPULSION */
+.pion.pion-eligible {
+    cursor: pointer;
+    animation: bounceEligible .8s infinite alternate ease-in-out;
+    filter: drop-shadow(0 0 8px #f1c40f);
+}
+
+/* PION NON JOUABLES */
+.pion-inactif {
+    opacity: .45;
+    filter: grayscale(50%);
+    pointer-events: none;
+    /* transition: opacity .3s ease, filter .3s ease; */
+}
+
+/* INDICATION DE PION {SELECTIONNABLE OU ACTIF} */
+.pion.pion-actif {
+    animation: pulsate 1.2s infinite alternate;
+}
+
+@keyframes pulsate {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.15) translate(0, -2px); }
+}
+
+@keyframes bounceEligible {
+    0% { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-5px) scale(1.15); }
+}

@@ -5,16 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ludo haïtien</title>
     <link rel="stylesheet" href="css/plateau.css">
+    <link rel="stylesheet" href="css/pions.css">
+    <link rel="stylesheet" href="css/dices.css">
 </head>
 <body>
     <div class="game-container">
         <h4>Plateau Ludo Haïtien (15x15)</h4>
         <!-- Le conteneur de la grille 15x15 -->
         <div id="board-container" class="ludo-board-container"></div>
+        
+        <!-- panneau de contrôle avec DEUX DÉS -->
+        <div id="dice-container" class="ludo-dice-container">
+            <div class="dice-card">
+                <div class="indicator-turn-player" id="indicator-player">tour : rouge</div>
+                
+                <div class="dice-wrapper">
+                    <div id="dice-1" class="dice-cube"></div>
+                    <div id="dice-2" class="dice-cube"></div>
+                </div>
+
+                <button id="roll-dice-btn" class="roll-btn">lancer 🎲</button>
+            </div>
+        </div>
     </div>
 
     <script src="js/circuit.js"></script>
     <script src="js/voiessecurite.js"></script>
+    <script src="js/mapping.js"></script>
+    <script src="js/piles.js"></script>
+    <script src="js/pions.js"></script>
+    <script src="js/dices.js"></script>
+    <script src="js/eligible.js"></script>
     <script src="js/plateau.js"></script>
 </body>
 </html>
+
+<!--    
+    rouge => bleu
+    vert => rouge
+    jaune => vert
+    bleu => jaune 
+-->

@@ -1,5 +1,4 @@
 const TAILLE_CASE = 40;
-const SVG_NS = "http://www.w3.org/2000/svg";
 
 // cartographie des 5 cases de sécurité pour chaque couleur
 const VOIES_SECURITE = {
