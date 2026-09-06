@@ -29,6 +29,14 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log(`pion cliqué - ${pionChoisi}`);
         });
     });
+
+    initializePanneau(
+        () => { console.log("fin du temps imparti"); },
+        () => { alert("reclamer manje !"); addLogPanneau("reclamation manje", "faute"); }
+    );
+
+    definirJoueurActif("ROUGE");
+    startTimerPanneau();
 });
 
 function creerPlateau () {

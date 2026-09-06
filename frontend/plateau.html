@@ -7,26 +7,72 @@
     <link rel="stylesheet" href="css/plateau.css">
     <link rel="stylesheet" href="css/pions.css">
     <link rel="stylesheet" href="css/dices.css">
+    <link rel="stylesheet" href="css/fragment.css">
 </head>
 <body>
-    <div class="game-container">
-        <h4>Plateau Ludo Haïtien (15x15)</h4>
-        <!-- Le conteneur de la grille 15x15 -->
-        <div id="board-container" class="ludo-board-container"></div>
-        
-        <!-- panneau de contrôle avec DEUX DÉS -->
-        <div id="dice-container" class="ludo-dice-container">
-            <div class="dice-card">
-                <div class="indicator-turn-player" id="indicator-player">tour : rouge</div>
-                
-                <div class="dice-wrapper">
-                    <div id="dice-1" class="dice-cube"></div>
-                    <div id="dice-2" class="dice-cube"></div>
+    <div class="app-layout">
+
+        <!-- PANNEAU LATERAL DU JEU -->
+        <aside id="sidebar-board" class="sidebar-board-container">
+            <!-- ENTETE JOUEUR ACTIF -->
+            <div class="board-card board-player-card">
+                <div id="board-player-badge" class="player-badge">
+                    <span class="player-color-dot" id="board-color-dot"></span>
+                    <span class="player-name" id="board-player-name">Joueur ROUGE</span>
                 </div>
 
-                <button id="roll-dice-btn" class="roll-btn">lancer 🎲</button>
+                <!-- HORLOGE / COMPTE A REBOURS -->
+                <div class="timer-container">
+                    <svg class="timer-svg" viewBox="0 0 36 36">
+                        <path class="timer-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="timer-progress" id="timer-progress-bar" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <span class="timer-text" id="board-timer-seconds">30</span>
+                </div>
+            </div>
+
+            <!-- FILE DES DES A JOUER -->
+            <div class="board-card">
+                <h4 class="board-title">priorite des dés</h4>
+                <div class="dice-priority-list" id="board-dice-priority">
+                    <span class="dice-empty-hint">en attente du lancer ...</span>
+                </div>
+            </div>
+
+            <!-- ACTION RECLAMER -->
+            <div class="board-card board-action-card">
+                <button class="btn-reclamer" id="btn-reclamer" disabled>⚡ reclamer !</button>
+            </div>
+
+            <!-- JOURNAL DE PARTIE -->
+            <div class="board-card board-log-card">
+                <h4 class="board-title">journal de partie</h4>
+                <div class="game-log" id="board-game-log">
+                    <p class="log-entry system">partie prête. à ROUGE de jouer</p>
+                </div>
+            </div>
+        </aside>
+
+        <div class="game-container">
+            <h4>Plateau Ludo Haïtien (15x15)</h4>
+            <!-- Le conteneur de la grille 15x15 -->
+            <div id="board-container" class="ludo-board-container"></div>
+            
+            <!-- panneau de contrôle avec DEUX DÉS -->
+            <div id="dice-container" class="ludo-dice-container">
+                <div class="dice-card">
+                    <div class="indicator-turn-player" id="indicator-player">tour : rouge</div>
+                    
+                    <div class="dice-wrapper">
+                        <div id="dice-1" class="dice-cube"></div>
+                        <div id="dice-2" class="dice-cube"></div>
+                    </div>
+
+                    <button id="roll-dice-btn" class="roll-btn">lancer 🎲</button>
+                </div>
             </div>
         </div>
+
     </div>
 
     <script src="js/circuit.js"></script>
@@ -36,6 +82,8 @@
     <script src="js/pions.js"></script>
     <script src="js/dices.js"></script>
     <script src="js/eligible.js"></script>
+    <script src="js/fragment.js"></script>
+    <script src="js/engine.js"></script>
     <script src="js/plateau.js"></script>
 </body>
 </html>

@@ -8,11 +8,27 @@
     opacity: .95;
 }
 
+.pion ellipse { transition: rx .1s ease, ry .1s ease, opacity .1s ease; }
+.pion.en-saut ellipse {
+    rx: 8px; ry: 3px;
+    opacity: 0.2;
+}
+
+/* PULSATION LUMINEUSE VERT */
+.pion.pion-eligible circle,
+.pion.pion-eligible path { animation: pulseEligible 1.2s infinite alternate ease-in-out; }
+
 /* ANIMIATION D'IMPULSION */
 .pion.pion-eligible {
-    cursor: pointer;
+    cursor: pointer !important;
     animation: bounceEligible .8s infinite alternate ease-in-out;
     filter: drop-shadow(0 0 8px #f1c40f);
+}
+
+.pion.pion-eligible:hover {
+    transform: scale(1.25);
+    transition: transform .15s ease-out;
+    filter: drop-shadow(0 0 15px #f1c40f) !important;
 }
 
 /* PION NON JOUABLES */
@@ -24,9 +40,7 @@
 }
 
 /* INDICATION DE PION {SELECTIONNABLE OU ACTIF} */
-.pion.pion-actif {
-    animation: pulsate 1.2s infinite alternate;
-}
+.pion.pion-actif { animation: pulsate 1.2s infinite alternate; }
 
 @keyframes pulsate {
     0% { transform: scale(1) translate(0, 0); }
@@ -36,4 +50,9 @@
 @keyframes bounceEligible {
     0% { transform: translateY(0) scale(1); }
     100% { transform: translateY(-5px) scale(1.15); }
+}
+
+@keyframes pulseEligible {
+    0% { filter: drop-shadow(0 0 3px #2ecc71); }
+    100% { filter: drop-shadow(0 0 12px #2ecc71) drop-shadow(0 0 5px #fff); }
 }

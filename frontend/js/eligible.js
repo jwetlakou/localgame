@@ -69,3 +69,23 @@ function calculateEligiblePions (couleurJoueur, valeursDes) {
     }
     return pionEligibles;
 }
+
+// activation de la surbrillance et l'interactivite sur la liste des pions
+function miseEnEvidancePionEligible (pionsEligibleList) {
+    resetEvidancePions ();
+
+    if (!Array.isArray(pionsEligibleList) || pionsEligibleList.length === 0) { return; }
+    pionsEligibleList.forEach( (pion) => {
+        const pionId = `pion-${pion.couleur.toLowerCase()}-${pion.indexPi}`;
+        const pionElement = document.getElementById(pionId);
+        if (pionElement) { pionElement.classList.add("pion-eligible"); }
+    });
+}
+
+// retire la surbrillance de tous les pions du plateau
+function resetEvidancePions () {
+    const allPions = document.querySelectorAll(".pion");
+    allPions.forEach( (pion) => {
+        pion.classList.remove("pion-eligible");
+    });
+}

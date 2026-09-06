@@ -1,0 +1,65 @@
+body.ui-locked {
+    pointer-events: none !important;
+    user-select: none;
+}
+
+body.ui-locked svg {
+    cursor: wait !important;
+    filter: brightness(.97);
+    transition: filter .2s ease;
+}
+
+.pion-ejecte {
+    opacity: .85;
+    transition: opacity .2s ease;
+}
+
+/* ANIMATION D'EFFET DE SECOUSSE (FLASH LUMINEUX) */
+.animation-impact-capture { animation: impactShake .35s ease-in-out forwards; }
+
+/* ANIMATION FLASH DE PENALITE / FAUTE RECLAMER */
+.animation-penalite-flash { animation: flashPenalite .6s ease-in-out 2 forwards; }
+
+/* ANIMATION SURGISSEMENT (SORTIE DE MAISON) */
+
+
+/* ANIMATION SURGISSEMENT (SORTIE DE MAISON) */
+.animation-pop-sortie { animation: popSortieMaison .5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+/* ANIMATION DE VICTOIRE DU CENTRE */
+.animation-victoire-centre { animation: victoireCentreGlow 1s infinite alternate ease-in-out; }
+
+/* PARTICULES DE CONFETTIS */
+.confetti-particule {
+    pointer-events: none;
+    animation: burstConfetti 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes popSortieMaison {
+    0% { transform: scale(.3) rotate(-20deg); opacity: .3; }
+    60% { transform: scale(1.35) rotate(10deg); filter: drop-shadow(0 0 12px #f1c40f); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes victoireCentreGlow {
+    0% { filter: drop-shadow(0 0 4px #f1c40f); }
+    100% { filter: drop-shadow(0 0 18px #f39c12) drop-shadow(0 0 8px #fff); }
+}
+
+@keyframes burstConfetti {
+    0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+    0% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2) rotate(360deg); }
+}
+
+@keyframes impactShake {
+    0%  { filter: drop-shadow(0 0 0 transparent); }
+    20% { transform: scale(1.4) rotate(-12deg); filter: drop-shadow(0 0 0 transparent); }
+    40% { transform: scale(1.2) rotate(12deg); }
+    60% { transform: scale(1.3) rotate(-6deg); }
+    100%{ transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 transparent); }
+}
+
+@keyframes flashPenalite {
+    0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+    50% { filter: drop-shadow(0 0 22px #e74c3c) drop-shadow(0 0 10px #f00); }
+}

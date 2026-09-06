@@ -23,7 +23,7 @@ function initializeDiceComposants (auLancerTermine) {
 
 // dessination des points sur la face des dés
 function displayDiceFace (diceCubeElement, valeur) {
-    if (!diceCubeElement) return;
+    if (!diceCubeElement || typeof diceCubeElement.appendChild !== "function") { console.error(`l'element n'est pas fonction - ${diceCubeElement}`); return; }
     diceCubeElement.innerHTML = "";
 
     const positionValides = MARQUES_DICES[valeur] || [];
@@ -52,8 +52,8 @@ function rollAnimeDices (callback) {
     const intervalleLancer = setInterval( () => {
         const face1 = Math.floor(Math.random() * 6) + 1;
         const face2 = Math.floor(Math.random() * 6) + 1;
-        displayDiceFace(face1);
-        displayDiceFace(face2);
+        displayDiceFace(diceCube1, face1);
+        displayDiceFace(diceCube2, face2);
     }, 80);
     
     // arrêt de l'animation après 800ms et fixation du resultat
@@ -65,8 +65,8 @@ function rollAnimeDices (callback) {
         // resultats finals réels (1 - 6)
         const resultat1 = Math.floor(Math.random() * 6) + 1;
         const resultat2 = Math.floor(Math.random() * 6) + 1;
-        displayDiceFace(resultat1);
-        displayDiceFace(resultat2);
+        displayDiceFace(diceCube1, resultat1);
+        displayDiceFace(diceCube2, resultat2);
 
         if (typeof callback === "function") { callback([resultat1, resultat2]); }
     }, 800);
