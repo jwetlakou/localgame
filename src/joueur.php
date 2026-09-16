@@ -4,28 +4,37 @@ namespace App;
 use App\Pion;
 
 class Joueur {
+    public const MAX_PIONS = 4;
+
     public int $id;
     public string $nom;
     public string $couleur;
     public bool $isBot;
 
-    public array $pions = [];
+    private array $pions = [];
 
     public function __construct(int $id, string $nom, string $couleur, bool $isBot = false) {
         $this->id = $id;
-        $this->nom = $nom;
-        $this->couleur = $couleur;
+        $this->nom = htmlspecialchars(trim($nom), ENT_QUOTES, 'UTF-8');
+        $this->couleur = htmlspecialchars(trim($couleur), ENT_QUOTES, 'UTF-8');
         $this->isBot = $isBot;
         $this->initialiserPions();
     }
 
     private function initialiserPions (): void {
-        for ($i = 1; $i <= 4; $i++) { $this->pions[] = new Pion($i, $this->couleur); }
+        for ($i = 1; $i <= self::MAX_PIONS; $i++) { $this->pions[] = new Pion($i, $this->couleur); }
     }
 
-    public function getPionById (int $id): ?Pion {
+    public function addPion (Pion $pion): void {
+        if (count($this->pions) >= self::MAX_PIONS) { throw new \LogicException("REGLE VIOLÉE - un joueur peut pas avoir plus de " . self::MAX_PIONS . " pions."); }
+        $this->pions[] = $pion;
+    }
+
+    public function getPions (): array { return $this->pions; }
+
+    public function getPionById (int $pionId): ?Pion {
         foreach ($this->pions as $pion) {
-            if ($pion->id === $id) { return $pion; }
+            if ($pion->id === $pionId) { return $pion; }
         }
         return null;
     }
@@ -46,7 +55,7 @@ class Joueur {
     }
 
     public function toArray(): array {
-        $pionsArray = [];
+        $pionsArray = array_map(function (Pion $pion) { return $pion->toArray(); }, $this->pions);
         foreach ($this->pions as $pion) { $pionsArray[] = $pion->toArray(); }
 
         return [

@@ -21,9 +21,19 @@ class Cases {
 
     public function empiler (Pion $pion): void { $this->pions[] = $pion; }
 
-    public function depiler (): ?Pion {
-        if ($this->isEmpty()) { return null; }
-        return array_pop($this->pions);
+    // public function depiler (): ?Pion {
+    //     if ($this->isEmpty()) { return null; }
+    //     return array_pop($this->pions);
+    // }
+
+    public function retirerPion (Pion $pionARetirer): bool {
+        foreach ($this->pions as $index => $pion) {
+            if ($pion->id === $pionARetirer->id && $pion->couleur === $pionARetirer->couleur) {
+                array_splice($this->pions, $index, 1);
+                return true;
+            }
+        }
+        return false;
     }
 
     public function getPionOnSommet (): ?Pion {

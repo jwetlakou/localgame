@@ -58,6 +58,7 @@ class Plateau {
                 $posDepart = self::INDEX_DEPART[$pion->couleur];
 
                 return [
+                    'valide'        => true,
                     'nouvelEtat'    => Pion::ETAT_CIRCUIT,
                     'nouvellePos'   => $posDepart,
                     'typeZone'      => 'CIRCUIT',
@@ -65,6 +66,7 @@ class Plateau {
                 ];
             }
             return [
+                'valide'        => false,
                 'nouvelEtat'    => Pion::ETAT_MAISON,
                 'nouvellePos'   => -1,
                 'typeZone'      => 'MAISON',
@@ -78,6 +80,7 @@ class Plateau {
             
             if ($nouvellePosArrivee === 6) {
                 return [
+                    'valide'        => true,
                     'nouvelEtat'    => Pion::ETAT_CENTRE,
                     'nouvellePos'   => 999,
                     'typeZone'      => 'CENTRE',
@@ -85,17 +88,19 @@ class Plateau {
                 ];
             } elseif ($nouvellePosArrivee < 6) {
                 return [
+                    'valide'        => true,
                     'nouvelEtat'    => Pion::ETAT_ARRIVEE,
                     'nouvellePos'   => $nouvellePosArrivee,
                     'typeZone'      => 'ARRIVEE',
-                    'message'       => 'VOIE DE SECURITE'
+                    'message'       => "'VOIE DE SECURITÉ"
                 ];
             } else {
                 return [
+                    'valide'        => false,
                     'nouvelEtat'    => Pion::ETAT_ARRIVEE,
                     'nouvellePos'   => $pion->position,
                     'typeZone'      => 'ARRIVEE',
-                    'message'       => 'VALEUR DEPASSE LE CENTRE'
+                    'message'       => "VALEUR DEPASSÉE LE CENTRE"
                 ];
             }
         }
@@ -112,17 +117,27 @@ class Plateau {
 
                 if ($posVoieSecurite <= 5) {
                     return [
+                        'valide'        => true,
                         'nouvelEtat'    => Pion::ETAT_ARRIVEE,
                         'nouvellePos'   => $posVoieSecurite,
                         'typeZone'      => 'ARRIVEE',
-                        'message'       => 'VOIE DE SECURITE |'
+                        'message'       => "ENTRÉE SUR LA VOIE DE SECURITÉ"
                     ];
                 } elseif ($posVoieSecurite == 6) {
                     return [
+                        'valide'        => true,
                         'nouvelEtat'    => Pion::ETAT_CENTRE,
                         'nouvellePos'   => 999,
                         'typeZone'      => 'CENTRE',
-                        'message'       => 'PION EST DANS CENTRE'
+                        'message'       => "PION EST DANS CENTRE"
+                    ];
+                } else {
+                    return [
+                        'valide'        => false,
+                        'nouvelEtat'    => Pion::ETAT_CIRCUIT,
+                        'nouvellePos'   => $pion->position,
+                        'typeZone'      => 'CIRCUIT',
+                        'message'       => "COUP IMPOSSIBLE : LE DEPASSEMENT DU CENTRE EST INTERDIT"
                     ];
                 }
             }
@@ -130,17 +145,19 @@ class Plateau {
             // progession pion sur le circuit
             $nouvellePosCircuit = ($pion->position + $de) % 52;
             return [
+                'valide'        => true,
                 'nouvelEtat'    => Pion::ETAT_CIRCUIT,
                 'nouvellePos'   => $nouvellePosCircuit,
                 'typeZone'      => 'CIRCUIT',
-                'message'       => "DEPLACEMENT SUR CIRCUIT SUR {$nouvellePosCircuit}"
+                'message'       => "DÉPLACEMENT SUR CIRCUIT SUR VERS CASE {$nouvellePosCircuit}"
             ];
         }
         return [
+            'valide'        => true,
             'nouvelEtat'    => $pion->etat,
             'nouvellePos'   => $pion->position,
             'typeZone'      => 'INCONNU',
-            'message'       => "ACTION NON GEREE"
+            'message'       => "ACTION NON GÉRÉE"
         ];
     }
 

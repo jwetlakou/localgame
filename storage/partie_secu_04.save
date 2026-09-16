@@ -1,0 +1,92 @@
+{
+    "idPartie": "partie_secu_04",
+    "statut": "EN_COURS",
+    "joueurActuel": {
+        "id": 1,
+        "nom": "jack",
+        "couleur": "ROUGE"
+    },
+    "des": {
+        "valeurs": [
+            6,
+            5
+        ],
+        "priorite": [
+            6,
+            5
+        ]
+    },
+    "joueurs": [
+        {
+            "id": 1,
+            "nom": "jack",
+            "couleur": "ROUGE",
+            "pions": [
+                {
+                    "id": 1,
+                    "couleur": "ROUGE",
+                    "etat": "MAISON",
+                    "position": -1,
+                    "detenuPar": null
+                },
+                {
+                    "id": 2,
+                    "couleur": "ROUGE",
+                    "etat": "MAISON",
+                    "position": -1,
+                    "detenuPar": null
+                },
+                {
+                    "id": 3,
+                    "couleur": "ROUGE",
+                    "etat": "MAISON",
+                    "position": -1,
+                    "detenuPar": null
+                },
+                {
+                    "id": 4,
+                    "couleur": "ROUGE",
+                    "etat": "MAISON",
+                    "position": -1,
+                    "detenuPar": null
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "nom": "paul",
+            "couleur": "BLEU",
+            "pions": [
+                {
+                    "id": 1,
+                    "couleur": "BLEU",
+                    "etat": "MAISON",
+                    "position": -1,
+                    "detenuPar": null
+                },
+                {
+                    "id": 2,
+                    "couleur": "BLEU",
+                    "etat": "MAISON",
+                    "position": -1,
+                    "detenuPar": null
+                },
+                {
+                    "id": 3,
+                    "couleur": "BLEU",
+                    "etat": "MAISON",
+                    "position": -1,
+                    "detenuPar": null
+                },
+                {
+                    "id": 4,
+                    "couleur": "BLEU",
+                    "etat": "MAISON",
+                    "position": -1,
+                    "detenuPar": null
+                }
+            ]
+        }
+    ],
+    "gagnant": null
+}

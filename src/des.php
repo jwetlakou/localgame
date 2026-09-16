@@ -8,10 +8,11 @@ class Des {
     public function __construct () { $this->lancer(); }
 
     public function lancer (): array {
-        $this->de1 = rand(1, 6);
-        $this->de2 = rand(1, 6);
+        $this->de1 = random_int(1, 6);
+        $this->de2 = random_int(1, 6);
 
-        return $this->getValues();
+        return [ 'de1' => $this->de1, 'de2' => $this->de2, 'isDouble' => $this->isDouble() ];
+        // return $this->toArray();
     }
 
     public function getValues (): array { return [$this -> de1, $this -> de2]; }
@@ -29,6 +30,8 @@ class Des {
     public function toArray(): array {
         return [
             'des'           => [$this->de1, $this->de2],
+            'de1'           => $this->de1,
+            'de2'           => $this->de2,
             'somme'         => $this->getDeSomme(),
             'isDouble'      => $this->isDouble(),
             'containsSix'   => $this->containsSix(),

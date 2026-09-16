@@ -52,10 +52,10 @@ class GestionnaireMouvement {
         // retirer un pion déplacant dans son ancienne case
         if ($ancienEtat === Pion::ETAT_CIRCUIT) {
             $caseAncienne = $plateau->getCaseCircuit($anciennePos);
-            if ($caseAncienne !== null) { $caseAncienne->depiler(); }
+            if ($caseAncienne !== null) { $caseAncienne->retirerPion($pion); }
         } elseif ($ancienEtat === Pion::ETAT_ARRIVEE) {
             $caseAncienne = $plateau->getCaseArrivee($pion->couleur, $anciennePos);
-            if ($caseAncienne !== null) { $caseAncienne->depiler(); }
+            if ($caseAncienne !== null) { $caseAncienne->retirerPion($pion); }
         }
 
         // gestion de la capture sur le circuit
@@ -71,9 +71,9 @@ class GestionnaireMouvement {
                     // case neutre : on mange
                     if ($caseDestination->type === Cases::TYPE_NEUTRE) {
                         while (!$caseDestination->isEmpty()) {
-                            $pionMange = $caseDestination->depiler();
-
+                            $pionMange = $caseDestination->getPionOnSommet();
                             if ($pionMange !== null) {
+                                $caseDestination->retirerPion($pionMange);
                                 $pionMange->deplacerVers(-1, Pion::ETAT_OTAGE);
                                 $captureEffectuees[] = [
                                     'pionId'    => $pionMange->id,
@@ -120,7 +120,7 @@ class GestionnaireMouvement {
         $resAction2 = $this->evaluerMouvement($pionB, $de2, $plateau);
 
         return [
-            'tourReussie'   => ($resAction1['succes'] && $resAction2['succes']),
+            'tourReussie'   => ($resAction1['valide'] && $resAction2['valide']),
             'action1'       => ['pionId' => $pionA->id, 'de' => $de1, 'resultat' => $resAction1],
             'action2'       => ['pionId' => $pionB->id, 'de' => $de2, 'resultat' => $resAction2],
         ];
@@ -165,32 +165,53 @@ class GestionnaireMouvement {
         return ['coupNul' => false, 'message' => "COUP VALIDE POUR {$joueur->nom} ({$joueur->couleur})"];
     }
 
-    public function penaliserOubliCapture (Pion $pionFautif, Plateau $plateau): array {
-        // retirer le pion fautif de sa case actuelle
-        if ($pionFautif->etat === Pion::ETAT_CIRCUIT) {
-            $case = $plateau->getCaseCircuit($pionFautif->position);
-            if ($case !== null) { $case->depiler(); }
-        } elseif ($pionFautif->etat === Pion::ETAT_ARRIVEE) {
-            $case = $plateau->getCaseArrivee($pionFautif->couleur, $pionFautif->position);
-            if ($case !== null) { $case->depiler(); }
-        } elseif ($pionFautif->etat !== Pion::ETAT_CIRCUIT) {
-            return ['succes' => false, 'message' => "PENALITE INVALIDE : PION #{$pionFautif->id} N'EST PAS ACTIF SUR LE CIRCUIT"];
-        }
-
-        // renvoyer directement à MAISON
-        $pionFautif->deplacerVers(-1, Pion::ETAT_MAISON);
-        return [
-            'succes'        => true,
-            'pionPenalise'  => $pionFautif->id,
-            'couleur'       => $pionFautif->couleur,
-            'nouvelEtat'    => Pion::ETAT_MAISON,
-            'message'       => "FAUTE RECLAMÉE ! ({$pionFautif->couleur}) #{$pionFautif->id} N'A PAS MANGE ET EST RENVOYE A LA MAISON"
-        ];
-    }
-
     public function verifierVictoire (Joueur $joueur): array {
         if ($joueur->isWin()) { return ['victoire' => true, 'gagnant' => $joueur->nom, 'couleur' => $joueur->couleur, 'message' => "🎉VICTOIRE ! JOUEUR {$joueur->nom} ({$joueur->couleur}) A 4 PIONS AU CENTRE"]; }
         return ['victoire' => false, 'gagnant' => null, 'message' => "LA PARTIE CONTINUE POUR {$joueur->nom} !"];
+    }
+
+    public function isPionActif (Pion $pion, Plateau $plateau):bool {
+        if ($pion->etat !== Pion::ETAT_CIRCUIT && $pion->etat !== Pion::ETAT_ARRIVEE) { return false; }
+
+        $case = ($pion->etat === Pion::ETAT_CIRCUIT) ? $plateau->getCaseCircuit($pion->position) : $plateau->getCaseArrivee($pion->couleur, $pion->position);
+        if ($case === null || $case->isEmpty()) { return false; }
+        $pionOnSommet = $case->getPionOnSommet();
+
+        return ($pionOnSommet !== null && $pionOnSommet->id === $pion->id && $pionOnSommet->couleur === $pion->couleur);
+    }
+
+    public function ableToCapture (Pion $pion, int $valeurDe, Plateau $plateau) {
+        if (!$this->isPionActif($pion, $plateau)) { return false; }
+
+        $evaluation = $this->evaluerMouvement($pion, $valeurDe, $plateau);
+        if (!$evaluation['valide']) { return false; }
+        $details = $evaluation['details'];
+
+        if ($details['nouvelEtat'] === Pion::ETAT_CIRCUIT) {
+            $caseDestination = $plateau->getCaseCircuit($details['nouvellePos']);
+            if ($caseDestination !== null && !$caseDestination->isEmpty()) {
+                if ($caseDestination->type === Cases::TYPE_NEUTRE) {
+                    $pionAdverse = $caseDestination->getPionOnSommet();
+                    if ($pionAdverse !== null && $pionAdverse->couleur !== $pion->couleur) { return true; }
+                }
+            }
+        }
+        return false;
+    }
+
+    public function penaliserOubliCapture (Pion $pionFautif, Plateau $plateau): array {
+        if (!$this->isPionActif($pionFautif, $plateau)) { return [ 'succes' => false, 'message' => "ACTION REFUSEE : PION #{$pionFautif->id}({$pionFautif->couleur}) INACTIF" ]; }
+
+        $case = ($pionFautif->etat === Pion::ETAT_CIRCUIT) ? $plateau->getCaseCircuit($pionFautif->position) : $plateau->getCaseArrivee($pionFautif->couleur, $pionFautif->position);
+        if ($case !== null) { $case->retirerPion($pionFautif); }
+
+        $pionFautif->deplacerVers(-1, Pion::ETAT_MAISON);
+
+        return [
+            'succes' => true, 'pionPenalise' => $pionFautif->id,
+            'couleur' => $pionFautif->couleur, 'nouvelEtat' => Pion::ETAT_MAISON,
+            'message' => "FAUTE CONFIRMEE ! PION {$pionFautif->couleur} N'A PAS MANGE ET RETOURNE A LA MAISON."
+        ];
     }
 }
 ?>
