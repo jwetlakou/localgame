@@ -1,68 +1,82 @@
 <?php
+declare(strict_types=1);
 namespace App;
 
-class Cases {
-    public const TYPE_NEUTRE = 'NEUTRE';
-    public const TYPE_DEPART = 'DEPART';
-    public const TYPE_ARRIVEE = 'ARRIVEE';
-    public const TYPE_CENTRE = 'CENTRE';
+use LogicException;
 
-    public int $id;
-    public string $type;
-    public ?string $colorSecteur;
+enum TYPE_CASE: string {
+    case NEUTRE = 'NEUTRE';
+    case DEPART = 'DEPART';
+    case ARRIVEE = 'ARRIVEE';
+    case CENTRE = 'CENTRE';
+}
 
-    public array $pions = [];
+final class Cases {
+    private int $id;
+    private TYPE_CASE $type;
+    private ?COLOR $secteur;
+    private PawnStack $pile;
 
-    public function __construct (int $id, string $type = self::TYPE_NEUTRE, ?string $colorSecteur = null) {
+    public function getId(): int { return $this->id; }
+    public function getColorSector (): ?COLOR { return $this->secteur; }
+    public function getType (): TYPE_CASE { return $this->type; }
+    // public function getPawnStack (): PawnStack { return $this->pile; }
+
+    public function __construct (int $id, TYPE_CASE $type = TYPE_CASE::NEUTRE, ?COLOR $secteur = null) {
+        if ($id < 0) { throw new LogicException("ID D'UNE CASE NE PEUT PAS ETRE NEGATIF"); }
         $this->id = $id;
         $this->type = $type;
-        $this->colorSecteur = $colorSecteur;
+        $this->secteur = $secteur;
+        $this->pile = new PawnStack();
+        $this->validateConfiguration();
     }
 
-    public function empiler (Pion $pion): void { $this->pions[] = $pion; }
-
-    // public function depiler (): ?Pion {
-    //     if ($this->isEmpty()) { return null; }
-    //     return array_pop($this->pions);
-    // }
-
-    public function retirerPion (Pion $pionARetirer): bool {
-        foreach ($this->pions as $index => $pion) {
-            if ($pion->id === $pionARetirer->id && $pion->couleur === $pionARetirer->couleur) {
-                array_splice($this->pions, $index, 1);
-                return true;
-            }
-        }
-        return false;
+    private function validateConfiguration (): void {
+        if ($this->type === TYPE_CASE::DEPART && $this->secteur === null) { throw new LogicException("UNE CASE DEPART DOIT AVOIR UNE COULEUR"); }
+        if ($this->type === TYPE_CASE::ARRIVEE && $this->secteur === null) { throw new LogicException("UNE CASE ARRIVÉE DOIT AVOIR UNE COULEUR"); }
+        // centre doit avoir une couleur car les pions qui rentrent dans le centre doit appartenir a la couleur du centre.
+        if ($this->type === TYPE_CASE::CENTRE && $this->secteur === null) { throw new LogicException("UNE CASE CENTRE DOIT AVOIR UNE COULEUR"); }
+        if ($this->type === TYPE_CASE::NEUTRE && $this->secteur !== null) { throw new LogicException("UNE CASE NEUTRE NE PEUT PAS AVOIR DE COULEUR"); }
     }
 
-    public function getPionOnSommet (): ?Pion {
-        if ($this->isEmpty()) {  return null; }
-        return $this->pions[count($this->pions) - 1];
+    public function getTopPawn (): ?Pion {
+        if ($this->pile->isEmpty()) { return null; }
+        return $this->pile->peek();
     }
 
-    public function isEmpty (): bool { return empty($this->pions); }
-
-    public function nbPions (): int { return count($this->pions); }
-
-    public function vider (): array {
-        $oldPions = $this->pions;
-        $this->pions = [];
-        return $oldPions;
+    public function isPawnActive (Pion $pion): bool {
+        if (!$this->pile->contains($pion)) { return false; }
+        return $this->pile->peek() === $pion;
     }
 
+    public function countPawns (): int { return $this->pile->count(); }
+
+    public function addPawns (Pion $pion): void { $this->pile->push($pion); }
+
+    public function removeTopPawn (): ?Pion {
+        if ($this->pile->isEmpty()) { return null; }
+        return $this->pile->pop();
+    }
+
+    public function clear (): array {
+        $pions = [];
+        while (!$this->pile->isEmpty()) { $pions[] = $this->pile->pop(); }
+        return $pions;
+    }
+
+    public function containsPawn (Pion $pion): bool { return $this->pile->contains($pion); }
+
+    public function isEmpty (): bool { return $this->pile->isEmpty(); }
+    
     public function toArray (): array {
-        $pilePions = [];
-        foreach ($this->pions as $pion) { $pilePions[] = $pion->toArray(); }
-        $pionSommet = $this->getPionOnSommet();
-
+        $topPawn = $this->getTopPawn();
         return [
-            'id'            => $this->id,
-            'type'          => $this->type,
-            'colorSecteur'  => $this->colorSecteur,
-            'nbPions'       => $this->nbPions(),
-            'pionActif'     => $pionSommet ? $pionSommet->toArray() : null,
-            'pilePions'     => $pilePions
+            'id'          => $this->id,
+            'type'        => $this->type->value,
+            'secteur'     => $this->secteur->value,
+            'nombrePions' => $this->pile->count(),
+            'pionActif'   => $topPawn?->toArray(),
+            'pions'       => $this->pile->toArray(),
         ];
     }
 }
