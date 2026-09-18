@@ -17,7 +17,7 @@ final class Joueur {
     public function __construct(int $id, string $nom, COLOR $couleur, bool $isBot = false) {
         if ($id < 0) { throw new \InvalidArgumentException ("ID DU JOUEUR NE PAS ETRE NEGATIF"); }
         $nom = trim($nom);
-        if ($nom === '') { throw new LogicException("NOM DU JOUEUR NE PEUT PAS ETRE VIDE"); }
+        if ($nom === '') { throw new \InvalidArgumentException ("NOM DU JOUEUR NE PEUT PAS ETRE VIDE"); }
         $this->id = $id; $this->nom = $nom;
         $this->couleur = $couleur; $this->isBot = $isBot;
         $this->initialiserPions();
@@ -33,16 +33,18 @@ final class Joueur {
     public function isBot (): bool { return $this->isBot; }
     
     public function getPions (): array { return $this->pions; }
+    
     public function getPionById (int $pionId): ?Pion {
         foreach ($this->pions as $pion) {
-            if ($pion->id === $pionId) { return $pion; }
+            if ($pion->getId() === $pionId) { return $pion; }
         }
         return null;
     }
+    
     public function getPionsByEtat (ETAT_PION $etat): array {
         $resultat = [];
         foreach ($this->pions as $pion) {
-            if ($pion->etat === $etat) { $resultat[] = $pion; }
+            if ($pion->getState() === $etat) { $resultat[] = $pion; }
         }
         return $resultat;
     }
@@ -58,7 +60,7 @@ final class Joueur {
         return [
             'id'      => $this->id,
             'nom'     => $this->nom,
-            'couleur' => $this->couleur,
+            'couleur' => $this->couleur->value,
             'isBot'   => $this->isBot,
             'pions'   => array_map( static fn (Pion $pion): array => $pion->toArray(), $this->pions)
         ];
