@@ -10,18 +10,18 @@ final class Plateau {
     private const INDEX_DEPART = ['ROUGE' => 0, 'BLEU'  => 13, 'JAUNE' => 26, 'VERT'  => 39];
     private array $circuit = [];
 
-    public function __construct() { $this->initialiserCircuit(); }
+    public function __construct() { $this->initializeCircuit(); }
 
-    private function initialiserCircuit (): void {
+    private function initializeCircuit (): void {
         for ($pg = 0; $pg < self::NOMBRE_CASES_CIRCUIT; $pg++) { 
-            $couleurDepart = $this->determinerCouleurDepart($pg);
+            $couleurDepart = $this->getStartColor($pg);
             if ($couleurDepart !== null) { $this->circuit[$pg] = new Cases($pg, TYPE_CASE::DEPART, $couleurDepart); continue; }
 
             $this->circuit[$pg] = new Cases($pg, TYPE_CASE::NEUTRE);
         }
     }
 
-    private function determinerCouleurDepart (int $pg): ?COLOR {
+    private function getStartColor (int $pg): ?COLOR {
         // foreach (self::INDEX_DEPART as $couleur => $index) {
         //     if ($pg === $index) { return COLOR::from($couleur); }
         // }

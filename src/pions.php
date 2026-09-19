@@ -56,25 +56,12 @@ class Pion {
         $this->detenuPar = null;
     }
 
-    public function entrerSurCircuit(int $positionDepart): void {
-        # Un pion ne peut entrer sur le circuit que depuis la maison.
-        if ($this->etat !== ETAT_PION::ETAT_MAISON) {
-            throw new \LogicException(
-                'Seul un pion en maison peut entrer sur le circuit.'
-            );
-        }
+    public function putOnStart(int $position): void {
+        if ($this->etat !== ETAT_PION::ETAT_MAISON) { throw new \LogicException("SEUL PION EN MAISON PEUT ENTRER SUR CIRCUIT"); }
+        if ($position < 0 || $position > 51) {throw new \InvalidArgumentException("POSITION DEPART DOIT ETRE COMPRISE ENTRE 0 ET 51");}
 
-        # Le circuit logique possède 52 positions : 0 à 51.
-        if ($positionDepart < 0 || $positionDepart > 51) {
-            throw new \InvalidArgumentException(
-                'La position de départ doit être comprise entre 0 et 51.'
-            );
-        }
-
-        # Le pion quitte la maison et prend sa position réelle
-        # sur le circuit global.
         $this->etat = ETAT_PION::ETAT_CIRCUIT;
-        $this->position = $positionDepart;
+        $this->position = $position;
     }
 
     public function startZone (): void {
