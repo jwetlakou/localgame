@@ -3,7 +3,6 @@ declare(strict_types=1);
 namespace App;
 
 use InvalidArgumentException;
-// use LogicException;
 
 final class Plateau {
     private const NOMBRE_CASES_CIRCUIT = 52;
@@ -33,7 +32,7 @@ final class Plateau {
         return $this->circuit[$pg];
     }
 
-    public function getCircuit (): array { return $this->circuit; }
+    // public function getCircuit (): array { return $this->circuit; }
 
     public function getIndexDepart(COLOR $couleur): int { return self::INDEX_DEPART[$couleur->value]; }
 

@@ -33,6 +33,7 @@ class Pion {
     public function getDetenuPar (): ?COLOR { return $this->detenuPar; }
     
     public function __construct(int $id, COLOR $couleur) {
+        if ($id <= 0) { throw new LogicException("ID D'UN PION NE PEUT PAS ETRE NUL OU NEGATIF"); }
         $this->id = $id; $this->couleur = $couleur;
         $this->position = -1; $this->etat = ETAT_PION::ETAT_MAISON;
         // $this->detenuPar = null;

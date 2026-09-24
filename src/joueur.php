@@ -2,8 +2,6 @@
 declare(strict_types=1);
 namespace App;
 
-use LogicException;
-
 final class Joueur {
     public const MAX_PIONS = 4;
 
@@ -31,8 +29,6 @@ final class Joueur {
     public function getName (): string { return $this->nom; }
     public function getColor (): COLOR { return $this->couleur; }
     public function isBot (): bool { return $this->isBot; }
-    
-    public function getPions (): array { return $this->pions; }
     
     public function getPionById (int $pionId): ?Pion {
         foreach ($this->pions as $pion) {
