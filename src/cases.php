@@ -12,6 +12,8 @@ enum TYPE_CASE: string {
 }
 
 final class Cases {
+    private const MAX_PIONS_DEPART = 16;
+
     private int $id;
     private TYPE_CASE $type;
     private ?COLOR $secteur;
@@ -23,10 +25,10 @@ final class Cases {
     
     public function __construct (int $id, TYPE_CASE $type = TYPE_CASE::NEUTRE, ?COLOR $secteur = null) {
         if ($id < 0) { throw new LogicException("ID D'UNE CASE NE PEUT PAS ETRE NEGATIF"); }
-        $this->id = $id;
-        $this->type = $type;
-        $this->secteur = $secteur;
-        $this->pile = new PawnStack();
+        
+        $this->id = $id; $this->type = $type;
+        $this->secteur = $secteur; $this->pile = new PawnStack();
+        
         $this->validateConfiguration();
     }
 
@@ -50,7 +52,25 @@ final class Cases {
 
     public function countPawns (): int { return $this->pile->count(); }
 
-    public function addPawns (Pion $pion): void { $this->pile->push($pion); }
+    public function canAcceptPawns (Pion $pion): bool {
+        if ($this->pile->contains($pion)) { return false; }
+
+        return match ($this->type) {
+            TYPE_CASE::NEUTRE => $this->canAcceptOnNeutral($pion),
+            TYPE_CASE::DEPART => $this->countPawns() < self::MAX_PIONS_DEPART,
+            TYPE_CASE::ARRIVEE, TYPE_CASE::CENTRE => $pion->getColor() === $this->secteur
+        };
+    }
+
+    private function canAcceptOnNeutral (Pion $pion): bool {
+        if ($this->pile->isEmpty()) { return true; }
+        return $this->getTopPawn()?->getColor() === $pion->getColor();
+    }
+
+    public function addPawn (Pion $pion): void {
+        if (!$this->canAcceptPawns($pion)) { throw new LogicException("CE PION PEUT PAS ÊTRE AJOUTÉ A CETTE CASE"); }
+        $this->pile->push($pion);
+    }
 
     public function removeTopPawn (): ?Pion {
         if ($this->pile->isEmpty()) { return null; }
@@ -72,7 +92,7 @@ final class Cases {
         return [
             'id'          => $this->id,
             'type'        => $this->type->value,
-            'secteur'     => $this->secteur->value,
+            'secteur'     => $this->secteur?->value,
             'nombrePions' => $this->pile->count(),
             'pionActif'   => $topPawn?->toArray(),
             'pions'       => $this->pile->toArray(),

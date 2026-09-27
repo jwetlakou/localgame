@@ -52,13 +52,17 @@ final class Joueur {
         return true;
     }
 
+    public function getPionsData(): array {
+        return array_map(static fn(Pion $pion) => $pion->toArray(), $this->pions);
+    }
+
     public function toArray(): array {
         return [
             'id'      => $this->id,
             'nom'     => $this->nom,
             'couleur' => $this->couleur->value,
             'isBot'   => $this->isBot,
-            'pions'   => array_map( static fn (Pion $pion): array => $pion->toArray(), $this->pions)
+            'pions'   => $this->getPionsData()
         ];
     }
 }

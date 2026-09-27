@@ -6,8 +6,17 @@ use InvalidArgumentException;
 
 final class Plateau {
     private const NOMBRE_CASES_CIRCUIT = 52;
+    
+    private const POSITION_MIN = 0;
+    private const POSITION_MAX = 57;
+
     private const INDEX_DEPART = ['ROUGE' => 0, 'BLEU'  => 13, 'JAUNE' => 26, 'VERT'  => 39];
+
     private array $circuit = [];
+
+    private array $arrivee = [];
+
+    private array $centre = [];
 
     public function __construct() { $this->initializeCircuit(); }
 
@@ -20,19 +29,18 @@ final class Plateau {
         }
     }
 
+    private function initializeArrivee (): void {}
+    private function initializeCentre (): void {}
+
     private function getStartColor (int $pg): ?COLOR {
-        // foreach (self::INDEX_DEPART as $couleur => $index) {
-        //     if ($pg === $index) { return COLOR::from($couleur); }
-        // }
-        return match ($pg) { 0 => COLOR::ROUGE, 13 => COLOR::BLEU, 26 => COLOR::JAUNE, 39 => COLOR::VERT, default => null, };
+        $this->validatePG($pg);
+        return match ($pg) { 0 => COLOR::ROUGE, 13 => COLOR::BLEU, 26 => COLOR::JAUNE, 39 => COLOR::VERT, default => null };
     }
 
     public function getCase (int $pg): Cases {
         $this->validatePG($pg);
         return $this->circuit[$pg];
     }
-
-    // public function getCircuit (): array { return $this->circuit; }
 
     public function getIndexDepart(COLOR $couleur): int { return self::INDEX_DEPART[$couleur->value]; }
 
@@ -55,11 +63,19 @@ final class Plateau {
     public function calculateNextPosition (int $irg, int $deplacement): int {
         $this->validatePosition($irg);
         if ($deplacement < 0) { throw new InvalidArgumentException("DEPLACEMENT NE PEUT PAS NEGATIF"); }
-        return ($irg + $deplacement) % self::NOMBRE_CASES_CIRCUIT;
+        if ($irg === self::POSITION_MAX && $deplacement > 0) { throw new InvalidArgumentException("PION ARRIVÉ AU CENTRE PEUT PLUS SE DEPLACER"); }
+        $nouvellePosition = $irg + $deplacement;
+
+        if ($nouvellePosition > self::POSITION_MAX) { throw new InvalidArgumentException("DEPLACEMENT DEPASSE LA POSITION DU CENTRE"); }
+        return $nouvellePosition;
     }
 
-    private function validatePosition (int $irg): void {
-        if ($irg < 0|| $irg >= self::NOMBRE_CASES_CIRCUIT) { throw new InvalidArgumentException("IRG DOIT ETRE COMPRISE ENTRE 0 ET 51"); }
+    public function validateCircuitPosition (int $irg): void {
+        if ($irg  < 0 || $irg > self::NOMBRE_CASES_CIRCUIT) { throw new InvalidArgumentException("POSITION DU CIRCUIT DOIT COMPRISE ENTRE 0 ET 51"); }
+    }
+
+    private function validatePosition (int $position): void {
+        if ($position < self::POSITION_MIN|| $position > self::POSITION_MAX) { throw new InvalidArgumentException("POSITION DOIT ETRE COMPRISE ENTRE 0 ET 57"); }
     }
 }
 ?>
