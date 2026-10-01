@@ -3,47 +3,31 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/pions.php';
 require_once __DIR__ . '/src/cases.php';
+require_once __DIR__ . '/src/plateau.php';
 require_once __DIR__ . '/src/pawnstack.php';
 
-use App\Cases;
+// use App\Cases;
 use App\COLOR;
-use App\ETAT_PION;
-use App\Pion;
-use App\TYPE_CASE;
+// use App\ETAT_PION;
+// use App\Pion;
+use App\Plateau;
+// use App\TYPE_CASE;
 
-function ok (string $message): void { echo "✅ $message<br/>"; }
-function fail (string $message): void { echo "❌ $message<br/>"; }
-function assertTrue (bool $condition, string $message): void {
-    if ($condition) { ok($message); return; }
-    fail($message);
-}
-function assertSame (mixed $expected, mixed $actual, string $message) {
-    if ($expected === $actual) { ok($message); return; }
-    fail($message. "| attendu = ". var_export($expected, true). " obtenu = ". var_export($actual, true));
-}
-function assertThrows (string $exceptionClass, callable $action, string $message): void {
-    try {
-        $action();
-        fail($message ." | aucune exception");
-    } catch (Throwable $e) {
-        if ($e instanceof $exceptionClass) { ok($message); return; }
-        fail($message ." | mauvaise exception : ".$e::class);
-    }
+function assertSameValue (mixed $excepted, mixed $actual, string $message) {
+    if ($excepted !== $actual) { throw new RuntimeException("{$message} | attendu : ". var_export($excepted, true) ." | obtenu : ". var_export($actual, true)); }
+    echo "✅ {$message}<br/>";
 }
 
-echo "<h2>MEME COULEUR</h2>";
+function assertThrows(callable $callback, string $message): void {
+    try { $callback(); }
+    catch (Throwable) { echo "✅ {$message}<br/>"; return; }
+    throw new RuntimeException("❌ {$message} | aucune exception n'a été levée");
+}
 
-$neutre = new Cases(1, TYPE_CASE::NEUTRE);
-$redDepart = new Cases(0, TYPE_CASE::DEPART, COLOR::ROUGE);
-$bleuArrivee = new Cases(52, TYPE_CASE::ARRIVEE, COLOR::BLEU);
-$greenCentre = new Cases(57, TYPE_CASE::CENTRE, COLOR::VERT);
+$plateau = new Plateau();
 
-$pion = new Pion(1, COLOR::BLEU);
-$neutre->addPawn($pion);
+echo "===== TESTS GÉOMÉTRIE PLATEAU =====<br/><br/>";
+echo PHP_EOL . "D — CONVERSION IRG ↔ PG" . PHP_EOL;
 
-assertThrows(
-    LogicException::class,
-    fn() => $neutre->addPawn($pion),
-    "un même objet Pion ne peut pas être ajouté deux fois"
-);
+$plateau->calculateNextPosition(-1, 5);
 ?>

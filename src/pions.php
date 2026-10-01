@@ -52,7 +52,7 @@ class Pion {
         $this->assertInvariant();
     }
 
-    private function assertInvariant(): void {
+    private function assertInvariant (): void {
         switch ($this->etat) {
             case ETAT_PION::ETAT_MAISON:
                 if ($this->position !== self::POSITION_MAISON) { throw new LogicException("INVARIANT VIOLÉ - UN PION EN MAISON DOIT AVOIR POSITION -1"); }
