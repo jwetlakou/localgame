@@ -1,217 +1,103 @@
 <?php
+declare(strict_type=1);
 namespace App;
 
-use App\Des;
-use App\Plateau;
-use App\Pion;
+use InvalidArgumentException;
+use LogicException;
 
 class GestionnaireMouvement {
-    public function obtenirOrdrePrioriteDes (Des $des): array {
-        $max = $des->getDeMax(); $min = $des->getDeMin();
-        return [$max, $min];
+    public function isPionActif (Pion $pion, Plateau $plateau): bool {
+        $state = $pion->getState();
+        if ($state !== ETAT_PION::ETAT_CIRCUIT && $state !== ETAT_PION::ETAT_ARRIVEE) { return false; }
+
+        try {
+            $pg = $plateau->positionToPG($pion->getPosition(), $pion->getColor());
+            $case = $plateau->getCase($pg);
+        } catch (InvalidArgumentException) {  return false; }
+
+        return $case->isPawnActive($pion);
     }
 
-    public function evaluerMouvement (Pion $pion, int $valeurDe, Plateau $plateau): array {
-        // pion en OTAGE peut pas deplacer
-        if ($pion->etat === Pion::ETAT_OTAGE) { return ['valide' => false, 'message' => "COUP IMPOSSIBLE : PION EN OTAGE"]; }
-
-        // pion à MAISON et besoin d'un 6
-        if ($pion->etat === Pion::ETAT_MAISON && $valeurDe !==6) { return ['valide' => false, 'message' => "COUP IMPOSSIBLE : PION EN MAISON, BESOIN D'UN 6"]; }
+    public function evaluateMove (Pion $pion, int $diceValue, Plateau $plateau): array {
+        if ($diceValue < 1 || $diceValue > 6) { return $this->refuse('VALEUR DU DÉ DOIT ETRE COMPRISE ENTRE 1 ET 6'); }
         
-        // vérification si le pion est sur le circuit et au sommet de la pile
-        if ($pion->etat === Pion::ETAT_CIRCUIT) {
-            $caseActuelle = $plateau->getCaseCircuit($pion->position);
-
-            if ($caseActuelle !== null && count($caseActuelle->pions) > 1) {
-                $pionOnSommet = $caseActuelle->getPionOnSommet();
-                
-                if ($pionOnSommet !== null && $pionOnSommet->id !== $pion->id) { return ['valide' => false, 'message' => "COUP IMPOSSIBLE : PION BLOQUE"]; }
-            }
-        }
+        $actualState = $pion->getState();
+        if ($actualState !== ETAT_PION::ETAT_CIRCUIT && $actualState !== ETAT_PION::ETAT_ARRIVEE) { $this->refuse('PION DOIT ETRE SUR LE CIRCUIT OU VOIE D\'ARRIVEE'); }
         
-        // règle du coup exact : interdiction de depasser la ligne d'ARRIVÉE
-        if ($pion->etat === Pion::ETAT_ARRIVEE) {
-            $distanceRestante = 6 - $pion->position;
+        if (!$this->isPionActif($pion, $plateau)) { $this->refuse('PION ABSENT DANS SA CASE | PION N\'EST PAS AU SOMMET'); }
 
-            if ($valeurDe > $distanceRestante) { return ['valide' => false, 'message' => "COUP IMPOSSIBLE : {$valeurDe} DEPASSE LA DISTANCE ({$distanceRestante})"]; }
+        $oldPosition = $pion->getPosition();
+
+        try {
+            $newPosition = $plateau->calculateNextPosition($oldPosition, $diceValue);
+            $oldPG = $plateau->positionToPG($oldPosition, $pion->getColor());
+            $newPG = $plateau->positionToPG($newPosition, $pion->getColor());
+            $targetTile = $plateau->getCase($newPG);
+        } catch (InvalidArgumentException) { return $this->refuse('DEPLACEMENT DEPASSE UNE LIMITE AUTORISEE DU PARCOURS'); }
+
+        $captureRequired = false;
+        
+        if ($targetTile->getType() === TYPE_CASE::NEUTRE && !$targetTile->isEmpty()) {
+            $topPawn = $targetTile->getTopPawn();
+            if ($topPawn !== null && $topPawn->getColor() !== $pion->getColor()) { $captureRequired = true; }
         }
 
-        // calcul de la destination
-        $calcul = $plateau->calculerProchainePosition($pion, $valeurDe);
-        return ['valide' => true, 'details' => $calcul];
+        if (!$captureRequired && !$targetTile->canAcceptPawns($pion)) { return $this->refuse('CASE DE DESITINATION PEUT PAS ACCUEILLIR CE PION'); }
+
+        $newState = match (true) { $newPosition <= 51 => ETAT_PION::ETAT_CIRCUIT, $newPosition <= 56 => ETAT_PION::ETAT_ARRIVEE, default => ETAT_PION::ETAT_CENTRE };
+        
+        return [
+            'valide'    => true,
+            'message'   => $captureRequired ? 'DÉPLACEMENT GÉOMÉTRIQUEMENT VALIDE... CAPTURE DOIT ETRE TRAITÉE' : 'DÉPLACEMENT VALIDE',
+            'details'   => [
+                'pionID'        => $pion->getId(),
+                'couleur'       => $pion->getColor()->value,
+                'anciennePos'   => $oldPosition,
+                'nouvellePos'   => $newPosition,
+                'anciennePG'    => $oldPG,
+                'nouvellePG'    => $newPG,
+                'nouvelEtat'    => $newState,
+                'captureRequise'=> $captureRequired
+            ]
+        ];
     }
 
-    public function executerMouvement (Pion $pion, int $valeurDe, Plateau $plateau): array {
-        $evaluation = $this->evaluerMouvement($pion, $valeurDe, $plateau);
+    public function executeMove (Pion $pion, int $diceValue, Plateau $plateau): array {
+        $evaluation = $this->evaluateMove($pion, $diceValue, $plateau);
         if (!$evaluation['valide']) { return ['succes' => false, 'message' => $evaluation['message']]; }
 
         $details = $evaluation['details'];
-        $anciennePos = $pion->position;
-        $ancienEtat = $pion->etat;
+        if ($details['captureRequise']) { return['succes' => false, 'message' => 'EXECUTION SUSPENDUE - LOGIQUE DE CAPTURE RESTE A IMPLEMENTER', 'details' => $details]; }
 
-        // retirer un pion déplacant dans son ancienne case
-        if ($ancienEtat === Pion::ETAT_CIRCUIT) {
-            $caseAncienne = $plateau->getCaseCircuit($anciennePos);
-            if ($caseAncienne !== null) { $caseAncienne->retirerPion($pion); }
-        } elseif ($ancienEtat === Pion::ETAT_ARRIVEE) {
-            $caseAncienne = $plateau->getCaseArrivee($pion->couleur, $anciennePos);
-            if ($caseAncienne !== null) { $caseAncienne->retirerPion($pion); }
-        }
+        $actualCase = $plateau->getCase($details['anciennePG']);
+        $targetTile = $plateau->getCase($details['nouvellePG']);
 
-        // gestion de la capture sur le circuit
-        $captureEffectuees = [];
-        if ($details['nouvelEtat'] === Pion::ETAT_CIRCUIT) {
-            $caseDestination = $plateau->getCaseCircuit($details['nouvellePos']);
+        if (!$actualCase->isPawnActive($pion)) { return $this->failExecution('ETAT DE LA CASE DE DEPART A CHANGÉ - DE'); }
 
-            // cas s'il y a déjà un pions de couleur differente sur la case
-            if ($caseDestination !== null && !$caseDestination->isEmpty()) {
-                $pionSommetAdverse = $caseDestination->getPionOnSommet();
+        if (!$targetTile->canAcceptPawns($pion)) { return $this->failExecution('DESTINATION N\'ACCEPTE PLUS CE PION - AUCUN DEPLACEMENT EFFECTUÉ'); }
 
-                if ($pionSommetAdverse !== null && $pionSommetAdverse->couleur !== $pion->couleur) {
-                    // case neutre : on mange
-                    if ($caseDestination->type === Cases::TYPE_NEUTRE) {
-                        while (!$caseDestination->isEmpty()) {
-                            $pionMange = $caseDestination->getPionOnSommet();
-                            if ($pionMange !== null) {
-                                $caseDestination->retirerPion($pionMange);
-                                $pionMange->deplacerVers(-1, Pion::ETAT_OTAGE);
-                                $captureEffectuees[] = [
-                                    'pionId'    => $pionMange->id,
-                                    'couleur'   => $pionMange->couleur,
-                                    'nouvelEtat'   => Pion::ETAT_OTAGE
-                                ];
-                            }
-                        }
-                    }
-                    // case DEPART : on mange pas
-                }
-            }
-        }
+        $removePawn = $actualCase->removeTopPawn();
+        if ($removePawn !== $pion) { throw new LogicException("INCOHÉRENCE DU PLATEAU - PION RETIRÉ NE CORRESPOND PAS AU ATTENDU"); }
 
-        // mise a jour de la position du pion déplacant
-        $pion->deplacerVers($details['nouvellePos'], $details['nouvelEtat']);
-
-        // placer le pion déplacant sur la nouvelle case
-        if ($details['nouvelEtat'] === Pion::ETAT_CIRCUIT) {
-            $caseNouvelle = $plateau->getCaseCircuit($details['nouvellePos']);
-            if ($caseNouvelle !== null) { $caseNouvelle->empiler($pion); }
-        } elseif ($details['nouvelEtat'] === Pion::ETAT_ARRIVEE) {
-            $caseNouvelle = $plateau->getCaseArrivee($pion->couleur, $details['nouvellePos']);
-            if ($caseNouvelle !== null) { $caseNouvelle->empiler($pion); }
-        } elseif ($details['nouvelEtat'] === Pion::ETAT_CENTRE) {
-            $plateau->centre->empiler($pion);
-        }
+        $pion->moveTo($details['nouvellePos']);
+        $targetTile->addPawn($pion);
 
         return [
-            'succes'            => true,
-            'pionId'            => $pion->id,
-            'couleur'           => $pion->couleur,
-            'deJoue'            => $valeurDe,
-            'depart'            => ['position' => $anciennePos, 'etat' => $ancienEtat],
-            'arrivee'           => ['position' => $pion->position, 'etat' => $pion->etat],
-            'nombreCaptures'    => count($captureEffectuees),
-            'detailsCaptures'   => $captureEffectuees,
-            'message'           => $details['message']
+            'succes'    => true,
+            'message'   => "DEPLACEMENT EXÉCUTÉ",
+            'details'   => [
+                ...$details,
+                'nouvelEtat'    => $pion->getState()->value
+            ]
         ];
     }
 
-    public function executerTourComplet (Pion $pionA, int $de1, Pion $pionB, int $de2, Plateau $plateau): array {
-        $resAction1 = $this->evaluerMouvement($pionA, $de1, $plateau);
-        $resAction2 = $this->evaluerMouvement($pionB, $de2, $plateau);
-
-        return [
-            'tourReussie'   => ($resAction1['valide'] && $resAction2['valide']),
-            'action1'       => ['pionId' => $pionA->id, 'de' => $de1, 'resultat' => $resAction1],
-            'action2'       => ['pionId' => $pionB->id, 'de' => $de2, 'resultat' => $resAction2],
-        ];
+    private function refuse (string $message): array {
+        return ['valide' => false, 'message' => $message];
     }
 
-    public function libererOtage (Pion $pionOtage, int $valeurDe, Joueur $joueurPreneur): array {
-        // vérification que le pion est bien un otage
-        if ($pionOtage->etat !== Pion::ETAT_OTAGE) { return ['succes' => false, 'message' => "PION N'EST PAS EN OTAGE"]; }
-
-        // vérification que la rancon est payée avec 6
-        if ($valeurDe !== 6) { return ['succes' => false, 'message' => "ECHEC DE RANCON : UN 6 POUR LIBERER OTAGE"]; }
-        
-        // libération du pion : retour à MAISON
-        $pionOtage->deplacerVers(-1, Pion::ETAT_MAISON);
-        return [
-            'succes'        => true,
-            'pionId'        => $pionOtage->id,
-            'couleurOtage'  => $pionOtage->couleur,
-            'nouvelEtat'    => Pion::ETAT_MAISON,
-            'beneficiaire'  => [
-                'nomJoueur'     => $joueurPreneur->nom,
-                'couleur'       => $joueurPreneur->couleur,
-                'valeurDe'      => 6,
-                'instruction'   => "BENEFICIE DE JOUER SON OU SES PIONS",
-            ],
-            'message'       => "RANCON PAYEE, PION {$pionOtage->couleur} RENTRE à MAISON, {$joueurPreneur->nom} JOUE LE LANCER"
-        ];
-    }
-
-    public function aDesCoupsPossibles (Joueur $joueur, int $valeurDe, Plateau $plateau): bool {
-        foreach ($joueur->pions as $pion) {
-            $evaluation = $this->evaluerMouvement($pion, $valeurDe, $plateau);
-            if ($evaluation['valide']) { return true; }
-        }
-        return false;
-    }
-
-    public function verifierCoupNul (Joueur $joueur, int $valeurDe, Plateau $plateau): array {
-        $coupPossible = $this->aDesCoupsPossibles($joueur, $valeurDe, $plateau);
-        if (!$coupPossible) { return ['coupNul' => true, 'message' => "COUP NUL POUR {$joueur->nom} ({$joueur->couleur})"]; }
-
-        return ['coupNul' => false, 'message' => "COUP VALIDE POUR {$joueur->nom} ({$joueur->couleur})"];
-    }
-
-    public function verifierVictoire (Joueur $joueur): array {
-        if ($joueur->isWin()) { return ['victoire' => true, 'gagnant' => $joueur->nom, 'couleur' => $joueur->couleur, 'message' => "🎉VICTOIRE ! JOUEUR {$joueur->nom} ({$joueur->couleur}) A 4 PIONS AU CENTRE"]; }
-        return ['victoire' => false, 'gagnant' => null, 'message' => "LA PARTIE CONTINUE POUR {$joueur->nom} !"];
-    }
-
-    public function isPionActif (Pion $pion, Plateau $plateau):bool {
-        if ($pion->etat !== Pion::ETAT_CIRCUIT && $pion->etat !== Pion::ETAT_ARRIVEE) { return false; }
-
-        $case = ($pion->etat === Pion::ETAT_CIRCUIT) ? $plateau->getCaseCircuit($pion->position) : $plateau->getCaseArrivee($pion->couleur, $pion->position);
-        if ($case === null || $case->isEmpty()) { return false; }
-        $pionOnSommet = $case->getPionOnSommet();
-
-        return ($pionOnSommet !== null && $pionOnSommet->id === $pion->id && $pionOnSommet->couleur === $pion->couleur);
-    }
-
-    public function ableToCapture (Pion $pion, int $valeurDe, Plateau $plateau) {
-        if (!$this->isPionActif($pion, $plateau)) { return false; }
-
-        $evaluation = $this->evaluerMouvement($pion, $valeurDe, $plateau);
-        if (!$evaluation['valide']) { return false; }
-        $details = $evaluation['details'];
-
-        if ($details['nouvelEtat'] === Pion::ETAT_CIRCUIT) {
-            $caseDestination = $plateau->getCaseCircuit($details['nouvellePos']);
-            if ($caseDestination !== null && !$caseDestination->isEmpty()) {
-                if ($caseDestination->type === Cases::TYPE_NEUTRE) {
-                    $pionAdverse = $caseDestination->getPionOnSommet();
-                    if ($pionAdverse !== null && $pionAdverse->couleur !== $pion->couleur) { return true; }
-                }
-            }
-        }
-        return false;
-    }
-
-    public function penaliserOubliCapture (Pion $pionFautif, Plateau $plateau): array {
-        if (!$this->isPionActif($pionFautif, $plateau)) { return [ 'succes' => false, 'message' => "ACTION REFUSEE : PION #{$pionFautif->id}({$pionFautif->couleur}) INACTIF" ]; }
-
-        $case = ($pionFautif->etat === Pion::ETAT_CIRCUIT) ? $plateau->getCaseCircuit($pionFautif->position) : $plateau->getCaseArrivee($pionFautif->couleur, $pionFautif->position);
-        if ($case !== null) { $case->retirerPion($pionFautif); }
-
-        $pionFautif->deplacerVers(-1, Pion::ETAT_MAISON);
-
-        return [
-            'succes' => true, 'pionPenalise' => $pionFautif->id,
-            'couleur' => $pionFautif->couleur, 'nouvelEtat' => Pion::ETAT_MAISON,
-            'message' => "FAUTE CONFIRMEE ! PION {$pionFautif->couleur} N'A PAS MANGE ET RETOURNE A LA MAISON."
-        ];
+    private function failExecution (string $message): array {
+        return ['succes' => false, 'message' => $message];
     }
 }
 ?>

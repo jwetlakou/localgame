@@ -22,10 +22,6 @@ final class Plateau {
 
     private array $cases = [];
 
-    private array $arrivee = [];
-
-    private array $centre = [];
-
     public function __construct() {
         $this->initializeCircuit();
         $this->initializeArrivee();

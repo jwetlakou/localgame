@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace App;
 
+use InvalidArgumentException;
+
 final class Joueur {
     public const MAX_PIONS = 4;
 
@@ -13,7 +15,7 @@ final class Joueur {
     private array $pions = [];
 
     public function __construct(int $id, string $nom, COLOR $couleur, bool $isBot = false) {
-        if ($id < 0) { throw new \InvalidArgumentException ("ID DU JOUEUR NE PAS ETRE NEGATIF"); }
+        if ($id <= 0) { throw new \InvalidArgumentException ("ID DU JOUEUR NE PAS ETRE NEGATIF"); }
         $nom = trim($nom);
         if ($nom === '') { throw new \InvalidArgumentException ("NOM DU JOUEUR NE PEUT PAS ETRE VIDE"); }
         $this->id = $id; $this->nom = $nom;
@@ -31,6 +33,8 @@ final class Joueur {
     public function isBot (): bool { return $this->isBot; }
     
     public function getPionById (int $pionId): ?Pion {
+        if ($pionId <= 0) { throw new InvalidArgumentException("ID DU PION DOIT ETRE STRICTEMENT POSITIF"); }
+        
         foreach ($this->pions as $pion) {
             if ($pion->getId() === $pionId) { return $pion; }
         }
@@ -43,6 +47,11 @@ final class Joueur {
             if ($pion->getState() === $etat) { $resultat[] = $pion; }
         }
         return $resultat;
+    }
+
+    public function hasPawn (Pion $pion): bool {
+        if ($pion->getColor() !== $this->couleur) { return false; }
+        return $this->getPionById($pion->getId()) === $pion;
     }
 
     public function isWin (): bool {

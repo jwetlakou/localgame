@@ -13,6 +13,7 @@ enum TYPE_CASE: string {
 
 final class Cases {
     private const MAX_PIONS_DEPART = 16;
+    private const MAX_PIONS_NEUTRE = 4;
 
     private int $id;
     private TYPE_CASE $type;
@@ -35,9 +36,8 @@ final class Cases {
     private function validateConfiguration (): void {
         if ($this->type === TYPE_CASE::DEPART && $this->secteur === null) { throw new LogicException("UNE CASE DEPART DOIT AVOIR UNE COULEUR"); }
         if ($this->type === TYPE_CASE::ARRIVEE && $this->secteur === null) { throw new LogicException("UNE CASE ARRIVÉE DOIT AVOIR UNE COULEUR"); }
-        // centre doit avoir une couleur car les pions qui rentrent dans le centre doit appartenir a la couleur du centre.
         if ($this->type === TYPE_CASE::CENTRE && $this->secteur === null) { throw new LogicException("UNE CASE CENTRE DOIT AVOIR UNE COULEUR"); }
-        if ($this->type === TYPE_CASE::NEUTRE && $this->secteur !== null) { throw new LogicException("UNE CASE NEUTRE NE PEUT PAS AVOIR DE COULEUR"); }
+        if ($this->type === TYPE_CASE::NEUTRE && $this->secteur !== null) { throw new LogicException("UNE CASE NEUTRE PEUT PAS AVOIR DE COULEUR"); }
     }
 
     public function getTopPawn (): ?Pion {
@@ -63,6 +63,7 @@ final class Cases {
     }
 
     private function canAcceptOnNeutral (Pion $pion): bool {
+        if ($this->countPawns() >= self::MAX_PIONS_NEUTRE) { return false; }
         if ($this->pile->isEmpty()) { return true; }
         return $this->getTopPawn()?->getColor() === $pion->getColor();
     }
@@ -86,7 +87,7 @@ final class Cases {
     public function containsPawn (Pion $pion): bool { return $this->pile->contains($pion); }
 
     public function isEmpty (): bool { return $this->pile->isEmpty(); }
-    
+
     public function toArray (): array {
         $topPawn = $this->getTopPawn();
         return [
