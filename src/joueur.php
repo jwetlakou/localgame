@@ -20,10 +20,10 @@ final class Joueur {
         if ($nom === '') { throw new \InvalidArgumentException ("NOM DU JOUEUR NE PEUT PAS ETRE VIDE"); }
         $this->id = $id; $this->nom = $nom;
         $this->couleur = $couleur; $this->isBot = $isBot;
-        $this->initialiserPions();
+        $this->initializePawns();
     }
 
-    private function initialiserPions (): void {
+    private function initializePawns (): void {
         for ($i = 1; $i <= self::MAX_PIONS; $i++) { $this->pions[] = new Pion($i, $this->couleur); }
     }
 

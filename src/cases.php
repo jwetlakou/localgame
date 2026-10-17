@@ -33,6 +33,12 @@ final class Cases {
         $this->validateConfiguration();
     }
 
+    private function canAcceptOnNeutral (Pion $pion): bool {
+        if ($this->countPawns() >= self::MAX_PIONS_NEUTRE) { return false; }
+        if ($this->pile->isEmpty()) { return true; }
+        return $this->getTopPawn()?->getColor() === $pion->getColor();
+    }
+
     private function validateConfiguration (): void {
         if ($this->type === TYPE_CASE::DEPART && $this->secteur === null) { throw new LogicException("UNE CASE DEPART DOIT AVOIR UNE COULEUR"); }
         if ($this->type === TYPE_CASE::ARRIVEE && $this->secteur === null) { throw new LogicException("UNE CASE ARRIVÉE DOIT AVOIR UNE COULEUR"); }
@@ -60,12 +66,6 @@ final class Cases {
             TYPE_CASE::DEPART => $this->countPawns() < self::MAX_PIONS_DEPART,
             TYPE_CASE::ARRIVEE, TYPE_CASE::CENTRE => $pion->getColor() === $this->secteur
         };
-    }
-
-    private function canAcceptOnNeutral (Pion $pion): bool {
-        if ($this->countPawns() >= self::MAX_PIONS_NEUTRE) { return false; }
-        if ($this->pile->isEmpty()) { return true; }
-        return $this->getTopPawn()?->getColor() === $pion->getColor();
     }
 
     public function addPawn (Pion $pion): void {

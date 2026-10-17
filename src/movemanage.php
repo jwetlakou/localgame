@@ -24,7 +24,8 @@ class GestionnaireMouvement {
         $actualState = $pion->getState();
         if ($actualState !== ETAT_PION::ETAT_CIRCUIT && $actualState !== ETAT_PION::ETAT_ARRIVEE) { $this->refuse('PION DOIT ETRE SUR LE CIRCUIT OU VOIE D\'ARRIVEE'); }
         
-        if (!$this->isPionActif($pion, $plateau)) { $this->refuse('PION ABSENT DANS SA CASE | PION N\'EST PAS AU SOMMET'); }
+        if (!$this->isPionActif($pion, $plateau)) { return ['valide' => false, 'message' => 'DEPLACEMENT REFUSE']; }
+        // if (!$this->isPionActif($pion, $plateau)) { $this->refuse('PION ABSENT DANS SA CASE | PION N\'EST PAS AU SOMMET'); }
 
         $oldPosition = $pion->getPosition();
 

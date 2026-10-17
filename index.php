@@ -7,16 +7,20 @@ require_once __DIR__ . '/src/cases.php';
 require_once __DIR__ . '/src/plateau.php';
 require_once __DIR__ . '/src/des.php';
 require_once __DIR__ . '/src/joueur.php';
+require_once __DIR__ . '/src/movemanage.php';
 
-use App\COLOR;
-use App\ETAT_PION;
-use App\TYPE_CASE;
-use App\Pion;
-use App\PawnStack;
 use App\Cases;
-use App\Plateau;
+use App\COLOR;
 use App\Des;
+use App\ETAT_PION;
+use App\GestionnaireMouvement;
 use App\Joueur;
+use App\PawnStack;
+use App\Pion;
+use App\Plateau;
+use App\TYPE_CASE;
+use RuntimeException;
+use Throwable;
 
 final class TestRunner {
     private  int $reussis = 0;
@@ -73,12 +77,14 @@ $tests->test('PION : identifiant invalide', function () use ($tests): void {
     $tests->assertThrows(fn() => new Pion(0, COLOR::ROUGE), 'un identifiant nul doit être réfusé');
 });
 
-$tests->test('PION : sortie au départ', function () use ($tests): void {
+$tests->test('PION : sortie au DEPART', function () use ($tests): void {
     $pion = new Pion(1, COLOR::BLEU);
     $pion->startZone();
 
     $tests->assertSame(ETAT_PION::ETAT_CIRCUIT, $pion->getState(), 'état après sortie');
     $tests->assertSame(0, $pion->getPosition(), 'position après sortie');
+    $tests->assertThrows(fn()=> $pion->moveTo(60), 'position invalide');
+    $tests->assertThrows(fn()=> $pion->moveTo(-1), 'position invalide');
 });
 
 $tests->test('PION : ARRIVEE et CENTRE', function () use ($tests): void {
@@ -87,27 +93,43 @@ $tests->test('PION : ARRIVEE et CENTRE', function () use ($tests): void {
     $pion->moveTo(52);
     
     $tests->assertSame(ETAT_PION::ETAT_ARRIVEE, $pion->getState(), 'état arrivée');
+    $tests->assertThrows(fn()=> $pion->release(), 'pion en ARRIVEE peut pas peut pas être libéré');
+    $tests->assertThrows(fn()=> $pion->moveTo(51), 'pion en ARRIVEE peut pas retourner sur le CIRCUIT');
 
     $pion->moveTo(57);
 
     $tests->assertSame(ETAT_PION::ETAT_CENTRE, $pion->getState(), 'état centre');
     $tests->assertSame(57, $pion->getPosition(), 'position centre');
+    $tests->assertThrows(fn()=> $pion->release(), 'pion en CENTRE peut pas peut pas être libéré');
+    $tests->assertThrows(fn()=> $pion->moveTo(54), 'pion en CENTRE peut pas retourner sur ARRIVEE');
+    $tests->assertThrows(fn()=> $pion->moveTo(50), 'pion en CENTRE peut pas retourner sur CIRCUIT');
 });
 
 $tests->test('PION : mouvement impossible depuis MAISON', function () use ($tests): void {
     $pion = new Pion(1, COLOR::ROUGE);
     
-    $tests->assertThrows(fn()=> $pion->moveTo(3), 'un pion en maison doit pas pouvoir se deplacer normalement');
+    $tests->assertThrows(fn()=> $pion->moveTo(3), 'pion en MAISON peut pas se deplacer normalement');
+    $tests->assertThrows(fn()=> $pion->moveTo(52), 'pion en MAISON peut pas se trouver en ARRIVEE');
+    $tests->assertThrows(fn()=> $pion->moveTo(57), 'pion en MAISON peut pas se trouver en CENTRE');
 });
 
-$tests->test('PION : capture & libération', function () use ($tests): void {
+$tests->test('PION : CAPTURE et LIBÉRATION', function () use ($tests): void {
     $pion = new Pion(1, COLOR::ROUGE);
+    $tests->assertThrows(fn()=> $pion->takenBy(COLOR::BLEU), 'pion en MAISON peut pas être capturé');
+    $tests->assertThrows(fn()=> $pion->release(), 'pion en MAISON peut pas peut pas être libéré');
+
     $pion->startZone();
-    $pion->takenBy(COLOR::BLEU);
+    $tests->assertThrows(fn()=> $pion->release(), 'pion en CIRCUIT peut pas peut pas être libéré');
+    $tests->assertThrows(fn()=> $pion->takenBy(COLOR::ROUGE), 'pion peut pas être capturé par sa COULEUR');
     
+    $pion->takenBy(COLOR::BLEU);
     $tests->assertSame(ETAT_PION::ETAT_OTAGE, $pion->getState(), 'pion doit être en OTAGE');
     $tests->assertSame(COLOR::BLEU, $pion->getDetenuPar(), 'detenteur non null');
-    
+    $tests->assertThrows(fn()=> $pion->startZone(), 'IMPOSSIBLE : PION CAPTURE - PION N\'EST PAS A LA MAISON');
+    $tests->assertThrows(fn()=> $pion->moveTo(4), 'pion en OTAGE peut pas se trouver sur CIRCUIT');
+    $tests->assertThrows(fn()=> $pion->moveTo(52), 'pion en OTAGE peut pas se trouver en ARRIVEE');
+    $tests->assertThrows(fn()=> $pion->moveTo(57), 'pion en OTAGE peut pas se trouver en CENTRE');
+
     $pion->release();
     $tests->assertSame(ETAT_PION::ETAT_MAISON, $pion->getState(), 'pion libéré doit revenir en MAISON');
     $tests->assertSame(null, $pion->getDetenuPar(), 'detenteur doit être effacé');
@@ -115,7 +137,7 @@ $tests->test('PION : capture & libération', function () use ($tests): void {
 // ===========================================================
 // ===========================================================
 
-$tests->test('PILE : ordre LIFO', function () use ($tests): void {
+$tests->test('PILE : ORDRE LIFO', function () use ($tests): void {
     $pile = new PawnStack();
     $pion1 = new Pion(1, COLOR::ROUGE);
     $pion2 = new Pion(2, COLOR::ROUGE);
@@ -123,59 +145,75 @@ $tests->test('PILE : ordre LIFO', function () use ($tests): void {
     $pile->push($pion1);
     $pile->push($pion2);
 
+    $tests->assertTrue($pile->contains($pion2), 'pile contient pion #2');
+    $tests->assertSame(2, $pile->count(), 'pile contient 2 pions');
     $tests->assertSame($pion2, $pile->peek(), 'dernier pion ajouté doit être au sommet');
     $tests->assertSame($pion2, $pile->pop(), 'dernier pion ajouté doit être sortir en premier');
     $tests->assertSame($pion1, $pile->pop(), 'premier pion ajouté doit sortir ensuite');
     $tests->assertTrue($pile->isEmpty(), 'pile doit être vide');
 });
 
-$tests->test('PILE : ordre LIFO', function () use ($tests): void {
+$tests->test('PILE : ACTIONS IMPOSSIBLES', function () use ($tests): void {
     $pile = new PawnStack();
-    $tests->assertThrows(fn() => $pile->pop(), 'retirer un pion d\'une pile');
+    $tests->assertThrows(fn() => $pile->pop(), 'retirer un pion d\'une pile vide');
+    $tests->assertThrows(fn() => $pile->peek(), 'consulter un pion d\'une pile vide');
 });
 // ===========================================================
 // ===========================================================
 
 
-$tests->test('CASES : depart accepte plusieur couleurs', function () use ($tests): void {
+$tests->test('CASES : DEPART accepte plusieur couleurs', function () use ($tests): void {
     $depart = new Cases(13, TYPE_CASE::DEPART, COLOR::BLEU);
+    $tests->assertTrue($depart->isEmpty(), 'case de DEPART est vide');
+    $rouge = new Pion(1, COLOR::ROUGE); $bleu = new Pion(1, COLOR::BLEU);
+    $jaune = new Pion(1, COLOR::JAUNE); $vert = new Pion(1, COLOR::VERT);
 
-    $rouge = new Pion(1, COLOR::ROUGE);
-    $bleu = new Pion(1, COLOR::BLEU);
-    $jaune = new Pion(1, COLOR::JAUNE);
-    $vert = new Pion(1, COLOR::VERT);
+    $depart->addPawn($rouge); $depart->addPawn($bleu);
+    $depart->addPawn($jaune); $depart->addPawn($vert);
 
-    $depart->addPawn($rouge);
-    $depart->addPawn($bleu);
-    $depart->addPawn($jaune);
-    $depart->addPawn($vert);
-
-    $tests->assertSame(4, $depart->countPawns(), 'pile du depart doit contenir 3 pions');
+    $tests->assertSame(4, $depart->countPawns(), 'pile de case DEPART contient 4 pions');
     $tests->assertTrue($depart->isPawnActive($vert), 'dernier pion ajouté doit être actif');
     $tests->assertTrue(!$depart->isPawnActive($rouge), 'pion inférieur doit être inactif');
+    $tests->assertTrue($depart->canAcceptPawns(new Pion(2, COLOR::JAUNE)), 'DEPART peut accepter ce pion');
+    $tests->assertSame($vert, $depart->getTopPawn(), 'pion au SOMMET de la case');
+    $tests->assertSame($vert, $depart->removeTopPawn(), 'pion au SOMMET est retiré');
+    $tests->assertTrue(!$depart->containsPawn($vert), 'ce pion n\'est plus sur la case');
 });
 
 $tests->test('CASES : NEUTRE accepte une pile de même couleur', function () use ($tests): void {
-    $case = new Cases(4);
+    $neutre4 = new Cases(4);
+    $pion1 = new Pion(1, COLOR::ROUGE); $pion2 = new Pion(2, COLOR::ROUGE);
+    $pion3 = new Pion(3, COLOR::ROUGE); $pion4 = new Pion(4, COLOR::ROUGE);
 
-    $pion1 = new Pion(1, COLOR::ROUGE);
-    $pion2 = new Pion(2, COLOR::ROUGE);
-
-    $case->addPawn($pion1);
-    $case->addPawn($pion2);
-
-    $tests->assertSame(2, $case->countPawns(), 'deux pions de même couleur');
+    $neutre4->addPawn($pion1); $neutre4->addPawn($pion2);
+    $tests->assertSame(2, $neutre4->countPawns(), '2 pions de même couleur');
+    
+    $neutre4->addPawn($pion3); $neutre4->addPawn($pion4);
+    $tests->assertSame(4, $neutre4->countPawns(), '4 pions de même couleur');
+    $tests->assertThrows(fn() => $neutre4->addPawn(new Pion(5, COLOR::ROUGE)), 'case NEUTRE doit pas accepter 5e pion');
+    
+    $neutre4->removeTopPawn();
+    $tests->assertSame(3, $neutre4->countPawns(), '3 pions de même couleur');
+    $tests->assertThrows(fn() => $neutre4->addPawn(new Pion(2, COLOR::JAUNE)), 'case NEUTRE doit pas accepter ce pion dans cette PILE');
+    $neutre4->clear();
+    $tests->assertSame(0, $neutre4->countPawns(), 'retirer tous les pions');
+    $tests->assertTrue($neutre4->isEmpty(), 'case NEUTRE vide');
+    
+    // $tests->assertThrows(fn () => $neutre4->removeTopPawn(), 'IMPOSSIBLE DE RETIRER SUR UNE CASE VIDE');
+    $tests->assertTrue($neutre4->canAcceptPawns(new Pion(2, COLOR::JAUNE)), 'case NEUTRE vide accepte ce pion');
 });
 
-$tests->test('CASES : NEUTRE refuse un cinquième pion', function () use ($tests): void {
-    $case = new Cases(4);
-    for ($id = 1; $id <= 4; $id++) { $case->addPawn(new Pion ($id, COLOR::ROUGE)); }
-    $tests->assertThrows(fn() => $case->addPawn(new Pion(5, COLOR::ROUGE)), 'case NEUTRE doit pas accepter 5e pion');
-});
+$tests->test('CASES : test sur ARRIVEE', function () use ($tests): void {
+    $arrivee52 = new Cases(52, TYPE_CASE::ARRIVEE, COLOR::ROUGE);
+    $pion1 = new Pion(1, COLOR::ROUGE); $pion2 = new Pion(2, COLOR::ROUGE);
+    $pion3 = new Pion(3, COLOR::ROUGE); $pion4 = new Pion(4, COLOR::ROUGE);
 
-$tests->test('CASES : ARRIVEE refuse un cinquième pion', function () use ($tests): void {
-    $arrivee = new Cases(52, TYPE_CASE::ARRIVEE, COLOR::ROUGE);
-    $tests->assertThrows(fn() => $arrivee->addPawn(new Pion(1, COLOR::BLEU)), 'case ARRIVEE doit pas accepter pion BLEU');
+    $arrivee52->addPawn($pion1); $arrivee52->addPawn($pion2);
+    $tests->assertSame(2, $arrivee52->countPawns(), '2 pions de même couleur');
+    $tests->assertThrows(fn() => $arrivee52->addPawn(new Pion(1, COLOR::BLEU)), 'case ARRIVEE doit pas accepter pion BLEU');
+
+    $arrivee52->addPawn($pion3); $arrivee52->addPawn($pion4);
+    $tests->assertSame(4, $arrivee52->countPawns(), '4 pions de même couleur');
 });
 // ===========================================================
 // ===========================================================
@@ -251,6 +289,117 @@ $tests->test('PLATEAU : mouvement au-delà du centre refusé', function () use (
     $plateau = new Plateau();
 
     $tests->assertThrows(fn () => $plateau->calculateNextPosition(56, 2), 'deplacement doit pas depasser le centre');
+});
+
+// $tests->test('GESTIONNAIRE : un pion actif qui se déplace dans sa voie d\'arrivée', function () use ($tests): void {
+//     $gestionnaire = new GestionnaireMouvement();
+//     $plateau = new Plateau();
+//     $john = new Joueur(2, 'JOHN', COLOR::ROUGE);
+
+//     $testJohn = $john->getPionById(1);
+//     if ($testJohn === null) { throw new RuntimeException("PION EST INTROUVABLE"); }
+
+//     $testJohn->startZone(); $testJohn->moveTo(52);
+//     $caseArrivee = $plateau->getCase($plateau->positionToPG($testJohn->getPosition(), $testJohn->getColor()));
+//     $caseArrivee->addPawn($testJohn);
+//     $caseArrivee->removeTopPawn();
+
+//     $testJohn->moveTo(56);
+//     $caseArrivee = $plateau->getCase($plateau->positionToPG($testJohn->getPosition(), $testJohn->getColor()));
+//     $caseArrivee->addPawn($testJohn);
+
+//     echo "<pre>";
+//     var_dump([
+//         'position' => $testJohn->getPosition(),
+//         'etat' => $testJohn->getState()->value,
+//         'PG' => $plateau->getCase($plateau->positionToPG($testJohn->getPosition(), $testJohn->getColor())),
+//     ]);
+//     echo "</pre>";
+// });
+
+$tests->test('GESTIONNAIRE : un deplacement qui depasse la dernière case autorisée', function () use ($tests): void {
+    $gestionnaire = new GestionnaireMouvement();
+    $plateau = new Plateau();
+    $john = new Joueur(2, 'JOHN', COLOR::ROUGE);
+
+    $pionJohn = $john->getPionById(1);
+    if ($pionJohn === null) { throw new RuntimeException("PION EST INTROUVABLE"); }
+
+    $pionJohn->startZone(); $pionJohn->moveTo(52);
+    $pg = $plateau->positionToPG($pionJohn->getPosition(), $pionJohn->getColor());
+    $caseArrivee = $plateau->getCase($pg);
+
+    if ($pionJohn->getState() !== ETAT_PION::ETAT_ARRIVEE) { throw new RuntimeException("PION DEVRAIT ETRE DANS LA VOIE D'ARRIVEE"); }
+    
+    echo "<pre>";
+    var_dump([
+        'position_relative' => $pionJohn->getPosition(),
+        'etat_pion' => $pionJohn->getState()->value,
+        'couleur_pion' => $pionJohn->getColor()->value,
+        'PG_CASE' => $caseArrivee->getId(),
+        'type_CASE' => $caseArrivee->getType()->value,
+        'secteur_CASE' => $caseArrivee->getColorSector()->value,
+        'nombre_pion' => $caseArrivee->countPawns(),
+        'pion_deja_present' => $caseArrivee->containsPawn($pionJohn),
+        'peut_accepter' => $caseArrivee->canAcceptPawns($pionJohn),
+    ]);
+    echo "</pre>";
+
+    // $caseArrivee->addPawn($pionJohn);
+    // $caseArrivee->addPawn($pionJohn);
+
+    // echo "<pre>";
+    // var_dump([
+    //     'position_relative' => $pionJohn->getPosition(),
+    //     'etat_pion' => $pionJohn->getState()->value,
+    //     'couleur_pion' => $pionJohn->getColor()->value,
+    //     'PG_CASE' => $caseArrivee->getId(),
+    //     'type_CASE' => $caseArrivee->getType()->value,
+    //     'secteur_CASE' => $caseArrivee->getColorSector()->value,
+    //     'nombre_pion' => $caseArrivee->countPawns(),
+    //     'pion_deja_present' => $caseArrivee->containsPawn($pionJohn),
+    //     'peut_accepter' => $caseArrivee->canAcceptPawns($pionJohn),
+    // ]);
+    // echo "</pre>";
+    // $caseArrivee->removeTopPawn();
+
+    // echo "<pre>";
+    // var_dump([
+    //     'position_relative' => $pionJohn->getPosition(),
+    //     'etat_pion' => $pionJohn->getState()->value,
+    //     'couleur_pion' => $pionJohn->getColor()->value,
+    //     'PG_CASE' => $caseArrivee->getId(),
+    //     'type_CASE' => $caseArrivee->getType()->value,
+    //     'secteur_CASE' => $caseArrivee->getColorSector()->value,
+    //     'nombre_pion' => $caseArrivee->countPawns(),
+    //     'pion_deja_present' => $caseArrivee->containsPawn($pionJohn),
+    //     'peut_accepter' => $caseArrivee->canAcceptPawns($pionJohn),
+    // ]);
+    // echo "</pre>";
+
+    $evaluation1 = $gestionnaire->evaluateMove($pionJohn, 4, $plateau);
+    $tests->assertTrue($evaluation1['valide'], 'EVALUATION POSSIBLE');
+    $tests->assertSame(56, $evaluation1['details']['nouvellePos'], 'NOUVELLE POSITION');
+    $caseArrivee = $plateau->getCase($plateau->positionToPG($pionJohn->getPosition(), $pionJohn->getColor()));
+    
+
+
+    $evaluation2 = $gestionnaire->evaluateMove($pionJohn, 2, $plateau);
+    $tests->assertTrue($evaluation2['valide'], 'EVALUATION DEPASSEMENT');
+
+    echo "<pre>";
+    var_dump([
+        'position_relative' => $pionJohn->getPosition(),
+        'etat_pion' => $pionJohn->getState()->value,
+        'couleur_pion' => $pionJohn->getColor()->value,
+        'PG_CASE' => $caseArrivee->getId(),
+        'type_CASE' => $caseArrivee->getType()->value,
+        'secteur_CASE' => $caseArrivee->getColorSector()->value,
+        'nombre_pion' => $caseArrivee->countPawns(),
+        'pion_deja_present' => $caseArrivee->containsPawn($pionJohn),
+        'peut_accepter' => $caseArrivee->canAcceptPawns($pionJohn),
+    ]);
+    echo "</pre>";
 });
 
 echo "<br/>";
