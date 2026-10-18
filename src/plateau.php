@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App;
 
 use InvalidArgumentException;
+use LogicException;
 
 final class Plateau {
     private const NOMBRE_CASES_PLATEAU = 76;
@@ -29,6 +30,10 @@ final class Plateau {
         $this->assertGeometry();
     }
 
+    private function validateCircuitPosition (int $irg): void {
+        if ($irg  < 0 || $irg > 51) { throw new InvalidArgumentException("POSITION DU CIRCUIT DOIT COMPRISE ENTRE 0 ET 51"); }
+    }
+
     private function validatePG (int $pg): void {
         if ($pg < 0 || $pg >= self::NOMBRE_CASES_PLATEAU) { throw new InvalidArgumentException("PG DOIT ETRE COMPRISE ENTRE 0 ET 75"); }
     }
@@ -38,9 +43,83 @@ final class Plateau {
     }
 
     private function assertGeometry (): void {
-        if (count($this->cases) !== self::NOMBRE_CASES_PLATEAU) { throw new \LogicException("LA GÉOMETRIE DU PLATEAU DOIT CONTENIR EXACTEMENT 76"); }
+        if (count($this->cases) !== self::NOMBRE_CASES_PLATEAU) { throw new LogicException("LA GÉOMETRIE DU PLATEAU DOIT CONTENIR EXACTEMENT 76"); }
         for ($pg = 0; $pg < self::NOMBRE_CASES_PLATEAU; $pg++) {
-            if (!isset($this->cases[$pg])) {throw new \LogicException("CASE PG {$pg} MANQUANTE DANS LA GÉOMETRIE"); }
+            if (!isset($this->cases[$pg])) {throw new LogicException("CASE PG {$pg} MANQUANTE DANS LA GÉOMETRIE"); }
+            if ($this->cases[$pg]->getId() !== $pg) { throw new LogicException("INCOHERENCE ENTRE CLE PG {$pg} ET ID DE LA CASE"); }
+        }
+        $this->assertCircuitGeometry();
+        $this->assertArriveeGeometry();
+        $this->assertCentreGeometry();
+
+        $this->assertConversionGeometry();
+    }
+
+    private function assertCircuitGeometry (): void {
+        for ($pg = 0; $pg < 52; $pg++) {
+            $case = $this->cases[$pg]; $startColor = $this->getStartColor($pg);
+
+            if ($startColor !== null) {
+                if ($case->getType() !== TYPE_CASE::DEPART) { throw new LogicException("PG {$pg} DOIT ETRE UN DEPART"); }
+                if ($case->getColorSector() !== $startColor) { throw new LogicException("PG {$pg} POSSEDE UN MAUVAIS SECTEUR"); }
+                continue;
+            }
+            if ($case->getType() !== TYPE_CASE::NEUTRE) { throw new LogicException("PG {$pg} DOIT ETRE NEUTRE"); }
+            if ($case->getColor !== null) { throw new LogicException("PG {$pg} NEUTRE NE DOIT PAS POSSEDER DE SECTEUR"); }
+        }
+    }
+
+    private function assertArriveeGeometry(): void {
+        foreach (COLOR::cases() as $color) {
+            $startPG = self::PG_ARRIVEE[$color->value];
+
+            for ($offset = 0; $offset <= 4; $offset++) {
+                $pg = $startPG + $offset;
+                $case = $this->cases[$pg];
+                if ($case->getType() !== TYPE_CASE::ARRIVEE) { throw new LogicException("PG {$pg} DOIT ETRE UNE ARRIVEE"); }
+                if ($case->getColorSector !== $color) { throw new LogicException("PG {$pg} DOIT APPARTENIR AU SECTEUR {$color->value}"); }
+            }
+        }
+    }
+
+    private function assertCentreGeometry (): void {
+        foreach (COLOR::cases() as $color) {
+            $pg = self::PG_CENTRE[$color->value];
+            $case = $this->cases[$pg];
+
+            if ($case->getType() !== TYPE_CASE::CENTRE) { throw new LogicException("PG {$pg} DOIT ETRE UN CENTRE"); }
+            if ($case->getColorSector !== $color) { throw new LogicException("PG {$pg} DOIT APPARTENIR AU CENTRE {$color->value}"); }
+        }
+    }
+
+    private function assertConversionGeometry (): void {
+        foreach (COLOR::cases() as $color) {
+            for ($irg = self::POSITION_MIN; $irg <= self::POSITION_MAX; $irg++) {
+                $pg = $this->positionToPG($irg, $color);
+                $position = $this->PGToPosition($pg, $color);
+
+                if ($position !== $irg) { throw new LogicException("CONVERSION IRG → PG → IRG INCOHERENTE POUR {$color->value}, IRG {$irg}"); }
+            }
+        }
+
+        for ($pg = 0; $pg < self::NOMBRE_CASES_PLATEAU; $pg++) {
+            $case = $this->cases[$pg];
+            $color = $case->getColorSector();
+
+            if ($case->getType() === TYPE_CASE::NEUTRE) {
+                foreach (COLOR::cases() as $pawnColor) {
+                    $irg = $this->PGToPosition($pg, $pawnColor);
+                    $index = $this->positionToPG($irg, $pawnColor);
+
+                    if ($index !== $pg) { throw new  LogicException("CONVERSION PG → IRG → PG INCOHERENTE POUR PG {$pg} ET {$pawnColor->value}"); }
+                }
+                continue;
+            }
+            if ($color === null) { throw new LogicException("CASE SPECIALE DOIT POSSEDER UNE COULEUR"); }
+            $irg = $this->PGToPosition($pg, $color);
+            $index = $this->positionToPG($irg, $color);
+
+            if ($index !== $pg) { throw new LogicException("CONVERSION PG → IRG → PG INCOHERENTE POUR PG {$pg}"); }
         }
     }
 
@@ -123,10 +202,6 @@ final class Plateau {
 
         if ($nouvellePosition > self::POSITION_CENTRE) { throw new InvalidArgumentException("DEPLACEMENT DEPASSE LA POSITION DU CENTRE"); }
         return $nouvellePosition;
-    }
-
-    public function validateCircuitPosition (int $irg): void {
-        if ($irg  < 0 || $irg > 51) { throw new InvalidArgumentException("POSITION DU CIRCUIT DOIT COMPRISE ENTRE 0 ET 51"); }
     }
 }
 ?>
