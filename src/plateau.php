@@ -82,7 +82,7 @@ final class Plateau {
 
     public function getIndexDepart(COLOR $couleur): int { return self::INDEX_DEPART[$couleur->value]; }
 
-    public function positionToPG (int $irg, COLOR $couleur) {
+    public function positionToPG (int $irg, COLOR $couleur): int {
         $this->validatePosition($irg);
         if ($irg <= self::NOMBRE_CASES_CIRCUIT - 1) {
             $index = $this->getIndexDepart($couleur);
@@ -126,7 +126,7 @@ final class Plateau {
     }
 
     public function validateCircuitPosition (int $irg): void {
-        if ($irg  < 0 || $irg > self::NOMBRE_CASES_CIRCUIT) { throw new InvalidArgumentException("POSITION DU CIRCUIT DOIT COMPRISE ENTRE 0 ET 51"); }
+        if ($irg  < 0 || $irg > 51) { throw new InvalidArgumentException("POSITION DU CIRCUIT DOIT COMPRISE ENTRE 0 ET 51"); }
     }
 }
 ?>

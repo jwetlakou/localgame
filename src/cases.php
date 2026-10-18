@@ -24,7 +24,7 @@ final class Cases {
     public function getId(): int { return $this->id; }
     public function getColorSector (): ?COLOR { return $this->secteur; }
     public function getType (): TYPE_CASE { return $this->type; }
-    
+
     public function __construct (int $id, TYPE_CASE $type = TYPE_CASE::NEUTRE, ?COLOR $secteur = null) {
         if ($id < 0) { throw new LogicException("ID D'UNE CASE NE PEUT PAS ETRE NEGATIF"); }
         $this->id = $id; $this->type = $type;

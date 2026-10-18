@@ -19,8 +19,6 @@ use App\PawnStack;
 use App\Pion;
 use App\Plateau;
 use App\TYPE_CASE;
-use RuntimeException;
-use Throwable;
 
 final class TestRunner {
     private  int $reussis = 0;
@@ -423,7 +421,7 @@ $tests->test('GESTIONNAIRE : EXECUTION DU DEPLACEMENT', function () use ($tests)
     $tests->assertTrue(!$execution1['succes'], 'EXECUTION IMPOSSIBLE');
 });
 
-$tests->test('GESTIONNAIRE :  capture toutes la pile adverse', function () use ($tests): void {
+$tests->test('GESTIONNAIRE : capture toutes la pile adverse', function () use ($tests): void {
     $plateau = new Plateau(); $gestionnaire = new GestionnaireMouvement();
     $redPion1 = new Pion(1, COLOR::ROUGE); $redPion1->putOnStart(1);
     $plateau->getCase(1)->addPawn($redPion1);
@@ -440,6 +438,11 @@ $tests->test('GESTIONNAIRE :  capture toutes la pile adverse', function () use (
     $tests->assertSame(ETAT_PION::ETAT_OTAGE, $bluePion2->getState(), 'pion BLEU inférieur doit être capturé');
     $tests->assertSame(COLOR::ROUGE, $bluePion1->getDetenuPar(), 'pion BLEU supérieur doit être détenu par ROUGE');
     $tests->assertSame(COLOR::ROUGE, $bluePion2->getDetenuPar(), 'pion BLEU inférieur doit être détenu par ROUGE');
+
+    $targetCase = $plateau->getCase(2);
+    $tests->assertSame(1, $targetCase->countPawns(), 'pile adverse doit être retirée par ce pion');
+    $tests->assertSame($redPion1, $targetCase->getTopPawn(), 'pion ROUGE doit occuper la case');
+    $tests->assertSame(2, count($execution['details']['capturesEffectuees']), 'nombre de pions capturés');
 });
 
 echo "<br/>";
