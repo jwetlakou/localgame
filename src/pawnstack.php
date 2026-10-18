@@ -30,6 +30,8 @@ final class PawnStack {
         return false;
     }
 
+    public function getPawns (): array { return $this->pions; }
+
     public function toArray (): array { return array_map( fn(Pion $pion): array => $pion->toArray(), $this->pions); }
 }
 ?>
