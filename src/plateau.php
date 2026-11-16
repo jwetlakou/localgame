@@ -65,7 +65,7 @@ final class Plateau {
                 continue;
             }
             if ($case->getType() !== TYPE_CASE::NEUTRE) { throw new LogicException("PG {$pg} DOIT ETRE NEUTRE"); }
-            if ($case->getColor !== null) { throw new LogicException("PG {$pg} NEUTRE NE DOIT PAS POSSEDER DE SECTEUR"); }
+            if ($case->getColorSector() !== null) { throw new LogicException("PG {$pg} NEUTRE NE DOIT PAS POSSEDER DE SECTEUR"); }
         }
     }
 
@@ -77,7 +77,7 @@ final class Plateau {
                 $pg = $startPG + $offset;
                 $case = $this->cases[$pg];
                 if ($case->getType() !== TYPE_CASE::ARRIVEE) { throw new LogicException("PG {$pg} DOIT ETRE UNE ARRIVEE"); }
-                if ($case->getColorSector !== $color) { throw new LogicException("PG {$pg} DOIT APPARTENIR AU SECTEUR {$color->value}"); }
+                if ($case->getColorSector() !== $color) { throw new LogicException("PG {$pg} DOIT APPARTENIR AU SECTEUR {$color->value}"); }
             }
         }
     }
@@ -88,7 +88,7 @@ final class Plateau {
             $case = $this->cases[$pg];
 
             if ($case->getType() !== TYPE_CASE::CENTRE) { throw new LogicException("PG {$pg} DOIT ETRE UN CENTRE"); }
-            if ($case->getColorSector !== $color) { throw new LogicException("PG {$pg} DOIT APPARTENIR AU CENTRE {$color->value}"); }
+            if ($case->getColorSector() !== $color) { throw new LogicException("PG {$pg} DOIT APPARTENIR AU CENTRE {$color->value}"); }
         }
     }
 
